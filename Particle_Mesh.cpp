@@ -13,11 +13,14 @@ int main(void){
     const int N = 1; // number of particles
     double M[N], x[N], y[N], z[N];
     const int mode_d = 3; // choose the mode for deposition
+    const double t_end = 100.0; // end time
+    const double ts = 0.05; //time step size of each step
     // end constants
     
     // initial conditions
     // add any necessary IC for your function
     // I set random mass and random position for now. You can change them if you want but remember removing this note.
+    const double t = 0.0; //initial time
     srand( time(NULL) );// set random seed for creating random number
     for(int n = 0; n<N; n++){
         M[n] = 10.0*(double)rand()/RAND_MAX;// 10 is maxium mass
@@ -27,29 +30,33 @@ int main(void){
     }
     // end IC
     
-    // mass deposition
-    // Note that the output of this is 3 by 3 matrix which from M_grid[0][0][0] to M[GN-1][GN-1][GN-1]
-    float ***M_grid;
-    mass_deposition(N, M, x, y, z, gs, GN, mode_d, &M_grid);
-    // end mass deposition
+    while(t <= t_end)
+    {
+        // mass deposition
+        // Note that the output of this is 3 by 3 matrix which from M_grid[0][0][0] to M[GN-1][GN-1][GN-1]
+        float ***M_grid;
+        mass_deposition(N, M, x, y, z, gs, GN, mode_d, &M_grid);
+        // end mass deposition
+        
+        // calculate potential here
+        // Read the output of mass deposition carefully, and please inform me if I need to change the form of mass_grid.
+        // end potential
+        
+        // Gradient of potential
+        // tell me the form of the output of potential calculation
+        // End Gradient potential
     
-    // calculate potential here
-    // Read the output of mass deposition carefully, and please inform me if I need to change the form of mass_grid.
-    // end potential
-    
-    // Gradient of potential
-    // tell me the form of the output of potential calculation
-    // End Gradient potential
-    
-    // acceleration deposition here
-    // I expect my output to be ax[N], ay[N], az[N]
-    // There are still some problems here.
-    // end acceleration deopsotion
-    
-    // Hermite Integral, DKD, KDK
-    // Read the output of acceleration deposition and see if there should be any change.
-    // end HI, DKD, KDK
-    
+        // acceleration deposition here
+        // I expect my output to be ax[N], ay[N], az[N]
+        // There are still some problems here.
+        // end acceleration deopsotion
+        
+        // Hermite Integral, DKD, KDK
+        // Read the output of acceleration deposition and see if there should be any change.
+        // end HI, DKD, KDK
+        
+        t += ts;
+    }
     return 0;
 }
 
