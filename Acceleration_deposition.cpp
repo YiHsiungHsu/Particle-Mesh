@@ -18,6 +18,8 @@ void acceleration_deposition( int N, float ***a_grid, double *x, double *y, doub
         a[n] = 0.0;
     }
     double dx, dy, dz;
+    double wx, wy, wz; //weighted function
+    
     if(mode == 1)
     {
         for(int n = 0; n<N; n++)
@@ -25,16 +27,28 @@ void acceleration_deposition( int N, float ***a_grid, double *x, double *y, doub
             for(int i = 0; i<GN; i++)
             {
                 dx = fabs(x[n]-i*gs);
+                
+                if(dx<0.5*gs) wx = 1.0;
+                else if(dx==0.5*gs) wx = 0.5;
+                else wx = 0.0;
+                
                 for(int j = 0; j<GN; j++)
                 {
                     dy = fabs(y[n]-j*gs);
+                    
+                    if(dy<0.5*gs) wy = 1.0;
+                    else if(dy==0.5*gs) wy = 0.5;
+                    else wy = 0.0;
+                    
                     for(int k = 0; k<GN; k++)
                     {
                         dz = fabs(z[n]-k*gs);
-                        if(dx<=0.5*gs && dy<=0.5*gs && dz <=0.5*gs)
-                        {
-                           a[n] += a_grid[i][j][k];
-                        }
+                        
+                        if(dz<0.5*gs) wz = 1.0;
+                        else if(dz==0.5*gs) wz = 0.5;
+                        else wz = 0.0;
+                        
+                        a[n] += wx*wy*wz*a_grid[i][j][k];
                     }
                 }
             }
@@ -47,6 +61,10 @@ void acceleration_deposition( int N, float ***a_grid, double *x, double *y, doub
             for(int i = 0; i<GN; i++)
             {
                 dx = fabs(x[n]-i*gs);
+                
+                if(dx<gs) wx = (1.0-dx/gs);
+                else wx = 0.0;
+                
                 for(int j = 0; j<GN; j++)
                 {
                     dy = fabs(y[n]-j*gs);
@@ -64,8 +82,6 @@ void acceleration_deposition( int N, float ***a_grid, double *x, double *y, doub
     }
     if(mode == 3)
     {
-        double wx, wy, wz; //weighted function
-        double ai; //
         for(int n = 0; n<N; n++)
         {
             for(int i = 0; i<GN; i++)

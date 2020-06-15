@@ -38,6 +38,7 @@ void mass_deposition(int N, double *M, double *x, double *y, double *z, double g
 */
     double m[N][N][N][N]; //allocated mass for every single particle with m[particle][gridx][gridy][gridz]
     double dx, dy, dz;
+    double wx, wy, wz; //weighted function
     
     *M_grid = buildGrid(GN,GN,GN);
     // initialize M_grid
@@ -56,18 +57,30 @@ void mass_deposition(int N, double *M, double *x, double *y, double *z, double g
             for(int i = 0; i<GN; i++)
             {
                 dx = fabs(x[n]-i*gs);
+                
+                if(dx<0.5*gs) wx = 1.0;
+                else if(dx==0.5*gs) wx = 0.5;
+                else wx = 0.0;
+                
                 for(int j = 0; j<GN; j++)
                 {
                     dy = fabs(y[n]-j*gs);
+                    
+                    if(dy<0.5*gs) wy = 1.0;
+                    else if(dy==0.5*gs) wy = 0.5;
+                    else wy = 0.0;
+                    
                     for(int k = 0; k<GN; k++)
                     {
                         dz = fabs(z[n]-k*gs);
-                        if(dx<=0.5*gs && dy<=0.5*gs && dz <=0.5*gs)
-                        {
-                            m[n][i][j][k] = M[n];
-                        }
-                        else m[n][i][j][k] = 0.0;
+                        
+                        if(dz<0.5*gs) wz = 1.0;
+                        else if(dz==0.5*gs) wz = 0.5;
+                        else wz = 0.0;
+                        
+                        m[n][i][j][k] = wx*wy*wz*M[n];
                         (*M_grid)[i][j][k] += (float)m[n][i][j][k];
+                        
                     }
                 }
             }
@@ -80,18 +93,27 @@ void mass_deposition(int N, double *M, double *x, double *y, double *z, double g
             for(int i = 0; i<GN; i++)
             {
                 dx = fabs(x[n]-i*gs);
+                
+                if(dx<gs) wx = (1.0-dx/gs);
+                else wx = 0.0;
+                
                 for(int j = 0; j<GN; j++)
                 {
                     dy = fabs(y[n]-j*gs);
+                    
+                    if(dy<gs) wy = (1.0-dy/gs);
+                    else wy = 0.0;
+                    
                     for(int k = 0; k<GN; k++)
                     {
                         dz = fabs(z[n]-k*gs);
-                        if(dx<=gs && dy<=gs && dz<=gs)
-                        {
-                            m[n][i][j][k] = (1.0-dx/gs)*(1.0-dy/gs)*(1.0-dz/gs)*M[n];
-                        }
-                        else m[n][i][j][k] = 0.0;
+                        
+                        if(dz<gs) wz = (1.0-dz/gs);
+                        else wz = 0.0;
+                        
+                        m[n][i][j][k] = wx*wy*wz*M[n];
                         (*M_grid)[i][j][k] += (float)m[n][i][j][k];
+                        
                     }
                 }
             }
@@ -99,13 +121,13 @@ void mass_deposition(int N, double *M, double *x, double *y, double *z, double g
     }
     if(mode == 3)
     {
-        double wx, wy, wz; //weighted function
         for(int n = 0; n<N; n++)
         {
             for(int i = 0; i<GN; i++)
             {
                 dx = fabs(x[n]-i*gs);
-                if(dx<=0.5*gs)
+                
+                if(dx<0.5*gs)
                 {
                     wx = 0.75-dx*dx/gs/gs;
                 }
@@ -118,7 +140,8 @@ void mass_deposition(int N, double *M, double *x, double *y, double *z, double g
                 for(int j = 0; j<GN; j++)
                 {
                     dy = fabs(y[n]-j*gs);
-                    if(dy<=0.5*gs)
+                    
+                    if(dy<0.5*gs)
                     {
                         wy = 0.75-dy*dy/gs/gs;
                     }
@@ -131,7 +154,8 @@ void mass_deposition(int N, double *M, double *x, double *y, double *z, double g
                     for(int k = 0; k<GN; k++)
                     {
                         dz = fabs(z[n]-k*gs);
-                        if(dz<=0.5*gs)
+                        
+                        if(dz<0.5*gs)
                         {
                             wz = 0.75-dz*dz/gs/gs;
                         }

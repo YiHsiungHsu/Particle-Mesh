@@ -1,54 +1,61 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <time.h>
 
-float ***buildGrid(int numRows, int numCols, int numLevels);
-void mass_deposition( int N, double *M, double *x, double *y, double *z, double gs, int GN, int mode, float ****M_grid);
+float ***buildGrid(const int numRows, const int numCols, const int numLevels); //creat grid points
+void mass_deposition( const int N, double *M, double *x, double *y, double *z, const double gs, const int GN, const int mode, float ****M_grid);
 
 int main(void){
-    double gs = 1.0;
-    int GN = 5;
-    int N = 2;
+    // constants
+    // add any necessary const. here
+    const double gs = 1.0; // grid size (distance between every grid point)
+    const int GN = 5; //box size. I set equilateral box, tell me if you need to change it.
+    const int N = 1; // number of particles
     double M[N], x[N], y[N], z[N];
-    /*
-    srand( time(NULL) );//set random seed for creating random number
+    const int mode_d = 3; // choose the mode for deposition
+    // end constants
+    
+    // initial conditions
+    // add any necessary IC for your function
+    // I set random mass and random position for now. You can change them if you want but remember removing this note.
+    srand( time(NULL) );// set random seed for creating random number
     for(int n = 0; n<N; n++){
-        M[n] = 10.0*(double)rand()/RAND_MAX;//10 is maxium mass
+        M[n] = 10.0*(double)rand()/RAND_MAX;// 10 is maxium mass
         x[n] = (double)rand()/RAND_MAX*(GN-1);
         y[n] = (double)rand()/RAND_MAX*(GN-1);
         z[n] = (double)rand()/RAND_MAX*(GN-1);
-    }*/
-    M[0] = 10.0;
-    M[1] = 5.0;
-    x[0] = 1.5;
-    x[1] = 2.7;
-    y[0] = 3.8;
-    y[1] = 3.2;
-    z[0] = 0.4;
-    z[1] = 2.1;
-    int mode = 3;
-    float ***M_grid;
-     
-
-    mass_deposition(N, M, x, y, z, gs, GN, mode, &M_grid);
-    
-    printf( "\nM_grid:\n" );
-    for(int k = 0; k<GN; k++){
-        printf( "k = %2d \n", k );
-        for(int i = 0; i<GN; i++){
-            for(int j = 0; j<GN; j++){
-                printf( "  %5.3f", M_grid[i][j][k] );
-            }
-            printf( "\n" );
-        }
     }
+    // end IC
+    
+    // mass deposition
+    // Note that the output of this is 3 by 3 matrix which from M_grid[0][0][0] to M[GN-1][GN-1][GN-1]
+    float ***M_grid;
+    mass_deposition(N, M, x, y, z, gs, GN, mode_d, &M_grid);
+    // end mass deposition
+    
+    // calculate potential here
+    // Read the output of mass deposition carefully, and please inform me if I need to change the form of mass_grid.
+    // end potential
+    
+    // Gradient of potential
+    // tell me the form of the output of potential calculation
+    // End Gradient potential
+    
+    // acceleration deposition here
+    // I expect my output to be ax[N], ay[N], az[N]
+    // There are still some problems here.
+    // end acceleration deopsotion
+    
+    // Hermite Integral, DKD, KDK
+    // Read the output of acceleration deposition and see if there should be any change.
+    // end HI, DKD, KDK
+    
     return 0;
 }
 
 
 
-float ***buildGrid(int numRows, int numCols, int numLevels)
+float ***buildGrid(const int numRows, const int numCols, const int numLevels)
 {
     float ***levels;
     levels = (float * * *)malloc(numLevels *sizeof(float *)); //Contains all levels
