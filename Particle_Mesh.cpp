@@ -87,6 +87,7 @@ int main(void){
         
         // Hermite Integral, DKD, KDK
         // Read the output of acceleration deposition and see if there should be any change.
+	hermite( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double gs, const int GN  );
         // end HI, DKD, KDK
         
         // Dump data
