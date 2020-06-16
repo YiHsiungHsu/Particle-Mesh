@@ -16,13 +16,14 @@ int main(void){
     double M[N], x[N], y[N], z[N];
     const int mode_d = 3; // choose the mode for deposition
     const double t_end = 100.0; // end time
-    const double ts = 0.05; //time step size of each step
+    const double dt = 0.05; //time step size of each step
     // end constants
     
     // initial conditions
     // add any necessary IC for your function
     // I set random mass and random position for now. You can change them if you want but remember removing this note.
-    const double t = 0.0; //initial time
+    double ti = 0.0; //initial time
+    double t = ti;
     srand( time(NULL) );// set random seed for creating random number
     for(int n = 0; n<N; n++){
         M[n] = 10.0*(double)rand()/RAND_MAX;// 10 is maxium mass
@@ -60,6 +61,29 @@ int main(void){
         acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode_d, double *az);
         // end acceleration deopsotion
         
+        // calculate jerk
+        double axcopy[N], aycopy[N], azcopy[N]; // copy acceleration for next step;
+        double aax[N], aay[N], aaz[N]; // jerk for x, y, z
+        if(t == ti) // modified with initial time
+        {
+            for(n = 0; n < N ; n++)
+            {
+                axcopy[n] = 0.0;
+                aycopy[n] = 0.0;
+                azcopy[n] = 0.0;
+            }
+        }
+        for(n = 0; n < N ; n++)
+        {
+            aax[n] = (ax[n] - axcopy[n])/dt;
+            aay[n] = (ay[n] - aycopy[n])/dt;
+            aaz[n] = (az[n] - azcopy[n])/dt;
+            axcopy[n] = ax[n];
+            aycopy[n] = ay[n];
+            azcopy[n] = az[n];
+        }
+        //end jerk
+        
         // Hermite Integral, DKD, KDK
         // Read the output of acceleration deposition and see if there should be any change.
         // end HI, DKD, KDK
@@ -68,7 +92,7 @@ int main(void){
         
         // end dump data
         
-        t += ts;
+        t += dt;
     }
     return 0;
 }
