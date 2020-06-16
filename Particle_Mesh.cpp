@@ -68,9 +68,9 @@ int main(void){
         {
             for(n = 0; n < N ; n++)
             {
-                axcopy[n] = 0.0;
-                aycopy[n] = 0.0;
-                azcopy[n] = 0.0;
+                axcopy[n] = ax[n];
+                aycopy[n] = ay[n];
+                azcopy[n] = az[n];
             }
         }
         for(n = 0; n < N ; n++)
