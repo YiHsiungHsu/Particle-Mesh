@@ -50,10 +50,14 @@ int main(void){
     
         // acceleration deposition here
         // I expect my output to be ax[N], ay[N], az[N]
-        double a[N];
+        double ax[N], ay[N], az[N];
         float ***a_grid = buildGrid(GN,GN,GN);
-        //assign a_grid here
-        void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode, double *a);
+        //assign a_grid for x here
+        acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode_d, double *ax);
+        //assign a_grid for y here
+        acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode_d, double *ay);
+        //assign a_grid for z here
+        acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode_d, double *az);
         // end acceleration deopsotion
         
         // Hermite Integral, DKD, KDK
