@@ -24,7 +24,9 @@ int main(void){
     const double t_end = 100.0; // end time
     const double ts = 0.05; //time step size of each step
     const G = 6.67408 × 1e-11 //(m3 kg-1 s-2)
+    const BC = 0         // choose boundary condition (0=isolated 1=period)
     // end constants
+	    
     
     // initial conditions
     // add any necessary IC for your function
