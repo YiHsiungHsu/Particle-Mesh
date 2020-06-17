@@ -509,6 +509,8 @@ double rez = 0;
       jfy[n] += G*M[j]*(rvy/sqrt(pow(rey, 3)) + 3*(rvy*ry)*ry/sqrt(pow(rey, 5)));
       jfz[n] += G*M[j]*(rvz/sqrt(pow(rez, 3)) + 3*(rvz*rz)*rz/sqrt(pow(rez, 5)));
 			   }
+   			   }
+   			   }
 
 //high order correction
    for (int n=0; n<N; n++){
