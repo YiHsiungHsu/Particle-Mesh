@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------------------------
-////Function    :  poisson  
+////Function    :  potentail  
 ////Description :  use the DFT for self-gravity to solve the poisson solver to get the potential
 ////
 ////Note        :  it can be optmize at convolution part
@@ -13,7 +13,7 @@
 ////
 ////Return      : phi
 ////--------------------------------------------------------------------------------------------
-void Possion( double *rho, double *phi )
+void Potential( double *rho, double *phi )
 {
   if(BC == 0)                                       //period BC
   {
