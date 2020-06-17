@@ -1,11 +1,11 @@
 //---------------------------------------------------------------------------------------------
-////Function    :  potentail  
+////Function    :  potential  
 ////Description :  use the DFT for self-gravity to solve the poisson solver to get the potential
 ////
-////Note        :  it can be optmize at convolution part
-////
-////
-////
+////Note        :  still need to declare N box size
+////                                     G gravitaional constant
+////               I use the row-major matrix which the fftw need.                     
+////               
 ////
 ////Parameter   :  rho = density of particle 
 ////               phi = potential of particle gravity
