@@ -23,6 +23,7 @@ int main(void){
     const int mode_d = 3; // choose the mode for deposition
     const double t_end = 100.0; // end time
     const double dt = 0.05; //time step size of each step
+    const G = 6.67408 × 1e-11 //(m3 kg-1 s-2)
     // end constants
     
     // initial conditions
@@ -53,6 +54,10 @@ int main(void){
         
         // calculate potential here
         // Read the output of mass deposition carefully, and please inform me if I need to change the form of mass_grid.
+	   void Potential( double *rho, double *phi )
+        // I need the row-major rho matrix and a row-major phi matrix with all 0
+        // it will get the row-major phi matrix return 
+        //http://www.fftw.org/fftw3_doc/Row_002dmajor-Format.html#Row_002dmajor-Format
         // end potential
         
         // Gradient of potential
