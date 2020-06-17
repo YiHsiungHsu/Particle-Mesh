@@ -242,7 +242,7 @@ double rez = 0;
 //
    for (int j=0; j<N; j++){
 //
-   if  (i != j)           {
+   if  (n != j)           {
 //
    rx = fabs(x[n]-x[j]);
 
