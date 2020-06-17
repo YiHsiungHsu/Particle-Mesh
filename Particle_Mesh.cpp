@@ -22,7 +22,7 @@ int main(void){
     double M[N], x[N], y[N], z[N];
     const int mode_d = 3; // choose the mode for deposition
     const double t_end = 100.0; // end time
-    const double dt = 0.05; //time step size of each step
+    const double ts = 0.05; //time step size of each step
     const G = 6.67408 × 1e-11 //(m3 kg-1 s-2)
     // end constants
     
@@ -38,9 +38,9 @@ int main(void){
         x[n] = (double)rand()/RAND_MAX*(GN-1);
         y[n] = (double)rand()/RAND_MAX*(GN-1);
         z[n] = (double)rand()/RAND_MAX*(GN-1);
-	jx[n] = 0;
-	jy[n] = 0;
-	jz[n] = 0;
+        jx[n] = 0;
+        jy[n] = 0;
+        jz[n] = 0;
     }
     // end IC
     
@@ -53,6 +53,17 @@ int main(void){
         // end mass deposition
         
         // calculate potential here
+        int rhoN = GN*GN*GN;
+        float rho[rhoN];
+        int index;
+        for(int i = 0; i<GN; i++){
+            for(int j = 0; j<GN; j++){
+                for(int k = 0; k<GN; k++){
+                    index = k+GN*(j+GN*i);
+                    rho[index] = M_grid[i][j][k];
+                }
+            }
+        }
         // Read the output of mass deposition carefully, and please inform me if I need to change the form of mass_grid.
 	   void Potential( double *rho, double *phi )
         // I need the row-major rho matrix and a row-major phi matrix with all 0
@@ -94,7 +105,7 @@ int main(void){
         
         // end dump data
         
-        t += dt;
+        t += ts;
     }
     return 0;
 }
