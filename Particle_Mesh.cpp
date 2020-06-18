@@ -58,6 +58,7 @@ int main(void){
         // end mass deposition
         
         // calculate potential here
+	//get rho in row-major form
         int rhoN = GN*GN*GN;
         float rho[rhoN], phi_grid[GN][GN][GN];
         int index;
@@ -66,6 +67,17 @@ int main(void){
                 for(int k = 0; k<GN; k++){
                     index = k+GN*(j+GN*i);
                     rho[index] = M_grid[i][j][k];
+                }
+            }
+        }
+	//set up the phi in row major-form
+	int phiN = GN*GN*GN;
+	float phi[phiN];
+	for(int i = 0; i<GN; i++){
+            for(int j = 0; j<GN; j++){
+                for(int k = 0; k<GN; k++){
+                    index = k+GN*(j+GN*i);
+                    phi[index] = 0;
                 }
             }
         }
