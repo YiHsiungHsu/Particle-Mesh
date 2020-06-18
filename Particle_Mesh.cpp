@@ -38,6 +38,9 @@ int main(void){
         x[n] = (double)rand()/RAND_MAX*(GN-1);
         y[n] = (double)rand()/RAND_MAX*(GN-1);
         z[n] = (double)rand()/RAND_MAX*(GN-1);
+        vx[n] = (double)rand()/RAND_MAX*(GN-1);
+        vy[n] = (double)rand()/RAND_MAX*(GN-1);
+        vz[n] = (double)rand()/RAND_MAX*(GN-1);
         jx[n] = 0;
         jy[n] = 0;
         jz[n] = 0;
@@ -54,7 +57,7 @@ int main(void){
         
         // calculate potential here
         int rhoN = GN*GN*GN;
-        float rho[rhoN];
+        float rho[rhoN], phi_grid[GN][GN][GN];
         int index;
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
@@ -64,15 +67,43 @@ int main(void){
                 }
             }
         }
-        // Read the output of mass deposition carefully, and please inform me if I need to change the form of mass_grid.
-	   void Potential( double *rho, double *phi )
+        Potential( double *rho, double *phi );
         // I need the row-major rho matrix and a row-major phi matrix with all 0
         // it will get the row-major phi matrix return 
         //http://www.fftw.org/fftw3_doc/Row_002dmajor-Format.html#Row_002dmajor-Format
+        for(int i = 0; i<GN; i++){
+            for(int j = 0; j<GN; j++){
+                for(int k = 0; k<GN; k++){
+                    index = k+GN*(j+GN*i);
+                    phi_grid[i][j][k] = phi[index];
+                }
+            }
+        }
         // end potential
         
         // Gradient of potential
-        // tell me the form of the output of potential calculation
+        float phi_dx[GN][GN][GN], phi_dx[GN][GN][GN], phi_dx[GN][GN][GN];
+        // gradient for boundary
+        for(int l = 0; i<GN; l++){
+            for(int m = 0; j<GN; m++){
+                phi_dx[0][l][m] = (phi_grid[1][l][m] - phi_grid[0][l][m])/gs;
+                phi_dx[GN-1][l][m] = (phi_grid[GN-1][l][m] - phi_grid[GN-2][l][m])/gs;
+                phi_dy[l][0][m] = (phi_grid[l][0][m] - phi_grid[l][0][m])/gs;
+                phi_dy[l][GN-1][m] = (phi_grid[l][GN-1][m] - phi_grid[l][GN-2][m])/gs;
+                phi_dz[l][m][0] = (phi_grid[l][m][1] - phi_grid[l][m][0])/gs;
+                phi_dz[l][m][GN-1] = (phi_grid[l][m][GN-1] - phi_grid[l][m][GN-2])/gs;
+            }
+        }
+        //gradient inside
+        for(int i = 1; i<GN-1; i++){
+            for(int j = 1; j<GN-1; j++){
+                for(int k = 1; k<GN-1; k++){
+                    phi_dx[i][j][k] = (phi_grid[i+1][j][k]-phi_grid[i-1][j][k])/(2*gs);
+                    phi_dy[i][j][k] = (phi_grid[i][j+1][k]-phi_grid[i][j-1][k])/(2*gs);
+                    phi_dz[i][j][k] = (phi_grid[i][j][k+1]-phi_grid[i][j][k-1])/(2*gs);
+                }
+            }
+        }
         // End Gradient potential
     
         // acceleration deposition here
@@ -80,16 +111,33 @@ int main(void){
         double ax[N], ay[N], az[N];
         float ***a_grid = buildGrid(GN,GN,GN);
         //assign a_grid for x here
+        for(int i = 0; i<GN; i++){
+            for(int j = 0; j<GN; j++){
+                for(int k = 0; k<GN; k++){
+                    a_grid[i][j][k] = phi_dx[i][j][k];
+                }
+            }
+        }
         acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode_d, double *ax);
         //assign a_grid for y here
+        for(int i = 0; i<GN; i++){
+            for(int j = 0; j<GN; j++){
+                for(int k = 0; k<GN; k++){
+                    a_grid[i][j][k] = phi_dy[i][j][k];
+                }
+            }
+        }
         acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode_d, double *ay);
         //assign a_grid for z here
+        for(int i = 0; i<GN; i++){
+            for(int j = 0; j<GN; j++){
+                for(int k = 0; k<GN; k++){
+                    a_grid[i][j][k] = phi_dz[i][j][k];
+                }
+            }
+        }
         acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode_d, double *az);
         // end acceleration deopsotion
-        
-        // calculate jerk
-        //since Hermite only need initial jerk once, I moved jerk to initial condition and give them initial values of zero
-        //end jerk
         
         // Hermite Integral, DKD, KDK
         // Read the output of acceleration deposition and see if there should be any change.
