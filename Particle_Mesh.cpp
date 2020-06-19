@@ -2,29 +2,31 @@
 #include <stdlib.h>
 #include <math.h>
 #include <fftw3.h>
+#include <time.h>
 //include any package you need and omp or mpi
 
 float ***buildGrid(const int numRows, const int numCols, const int numLevels); //creat grid points
 void mass_deposition( const int N, double *M, double *x, double *y, double *z, const double gs, const int GN, const int mode, float ****M_grid);
 void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode, double *a);
-void hermite( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz  );
-void hermiteDKD( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz );
-void hermiteKDK( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz  );
-void Potential( double *rho, double *phi )
+void hermite( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
+void hermiteDKD( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
+void hermiteKDK( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
+void Potential( double *rho, double *phi, double G, int BC, int GN, double gs  );
 
 
 int main(void){
     // constants
     // add any necessary const. here
     const double gs = 1.0; // grid size (distance between every grid point)
-    const int GN = 5; //box size. I set equilateral box, tell me if you need to change it.
+    const int GN = 4; //box size. I set equilateral box, tell me if you need to change it.
     const int N = 1; // number of particles
     double M[N], x[N], y[N], z[N];
-    const int mode_d = 3; // choose the mode for deposition
-    const double t_end = 100.0; // end time
+    const int mode_d = 1; // choose the mode for deposition
+    const int mode_h = 1; // choose the mode for hermite
+    const double t_end = 0.05; // end time
     const double ts = 0.05; //time step size of each step
-    const G = 6.67408 × 1e-11 //(m3 kg-1 s-2)
-    const BC = 0         // choose boundary condition (0=isolated 1=period)
+    const double G = 0.25/M_PI*1.0e-10; //(m3 kg-1 s-2)
+    const int BC = 0;         // choose boundary condition (0=isolated 1=period)
     // end constants
 	    
     
@@ -33,22 +35,21 @@ int main(void){
     // I set random mass and random position for now. You can change them if you want but remember removing this note.
     double ti = 0.0; //initial time
     double t = ti;
-    double jx[N], jy[N], jz[N]; // jerk for x, y, z. j stand for jerk	
+    double vx[N], vy[N], vz[N], jx[N], jy[N], jz[N]; // jerk for x, y, z. j stand for jerk	
     srand( time(NULL) );// set random seed for creating random number
     for(int n = 0; n<N; n++){
-        M[n] = 10.0*(double)rand()/RAND_MAX;// 10 is maxium mass
-        x[n] = (double)rand()/RAND_MAX*(GN-1);
-        y[n] = (double)rand()/RAND_MAX*(GN-1);
-        z[n] = (double)rand()/RAND_MAX*(GN-1);
-        vx[n] = (double)rand()/RAND_MAX*(GN-1);
-        vy[n] = (double)rand()/RAND_MAX*(GN-1);
-        vz[n] = (double)rand()/RAND_MAX*(GN-1);
+        M[n] = 1.0;//*(double)rand()/RAND_MAX;// 10 is maxium mass
+        x[n] = 1.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
+        y[n] = 1.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
+        z[n] = 1.0 + (double)  n;//(double)rand()/RAND_MAX*(GN-1);
+        vx[n] =0.0;// (double)rand()/RAND_MAX*(GN-1);
+        vy[n] =0.0;// (double)rand()/RAND_MAX*(GN-1);
+        vz[n] =0.0;// (double)rand()/RAND_MAX*(GN-1);
         jx[n] = 0;
         jy[n] = 0;
         jz[n] = 0;
     }
     // end IC
-    
     while(t <= t_end)
     {
         // mass deposition
@@ -60,7 +61,7 @@ int main(void){
         // calculate potential here
 	//get rho in row-major form
         int rhoN = GN*GN*GN;
-        float rho[rhoN], phi_grid[GN][GN][GN];
+        double rho[rhoN], phi_grid[GN][GN][GN];
         int index;
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
@@ -70,9 +71,8 @@ int main(void){
                 }
             }
         }
-	//set up the phi in row major-form
 	int phiN = GN*GN*GN;
-	float phi[phiN];
+	double phi[phiN];
 	for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
                 for(int k = 0; k<GN; k++){
@@ -81,7 +81,7 @@ int main(void){
                 }
             }
         }
-        Potential( double *rho, double *phi );
+        Potential(  rho,  phi , G, BC, GN, gs);
         // I need the row-major rho matrix and a row-major phi matrix with all 0
         // it will get the row-major phi matrix return 
         //http://www.fftw.org/fftw3_doc/Row_002dmajor-Format.html#Row_002dmajor-Format
@@ -90,19 +90,20 @@ int main(void){
                 for(int k = 0; k<GN; k++){
                     index = k+GN*(j+GN*i);
                     phi_grid[i][j][k] = phi[index];
+         //            printf("phi[%2d][%2d][%2d]= %5.5f \n", i,j,k,phi_grid[i][j][k]);
                 }
             }
         }
         // end potential
         
         // Gradient of potential
-        float phi_dx[GN][GN][GN], phi_dx[GN][GN][GN], phi_dx[GN][GN][GN];
+        float phi_dx[GN][GN][GN], phi_dy[GN][GN][GN], phi_dz[GN][GN][GN];
         // gradient for boundary
-        for(int l = 0; i<GN; l++){
-            for(int m = 0; j<GN; m++){
+        for(int l = 0; l<GN; l++){
+            for(int m = 0; m<GN; m++){
                 phi_dx[0][l][m] = (phi_grid[1][l][m] - phi_grid[0][l][m])/gs;
                 phi_dx[GN-1][l][m] = (phi_grid[GN-1][l][m] - phi_grid[GN-2][l][m])/gs;
-                phi_dy[l][0][m] = (phi_grid[l][0][m] - phi_grid[l][0][m])/gs;
+                phi_dy[l][0][m] = (phi_grid[l][1][m] - phi_grid[l][0][m])/gs;
                 phi_dy[l][GN-1][m] = (phi_grid[l][GN-1][m] - phi_grid[l][GN-2][m])/gs;
                 phi_dz[l][m][0] = (phi_grid[l][m][1] - phi_grid[l][m][0])/gs;
                 phi_dz[l][m][GN-1] = (phi_grid[l][m][GN-1] - phi_grid[l][m][GN-2])/gs;
@@ -115,9 +116,20 @@ int main(void){
                     phi_dx[i][j][k] = (phi_grid[i+1][j][k]-phi_grid[i-1][j][k])/(2*gs);
                     phi_dy[i][j][k] = (phi_grid[i][j+1][k]-phi_grid[i][j-1][k])/(2*gs);
                     phi_dz[i][j][k] = (phi_grid[i][j][k+1]-phi_grid[i][j][k-1])/(2*gs);
+                //    printf("%5.5f\n",phi_dx[i][j][k]);
                 }
             }
         }
+	for(int i = 0; i<GN; i++){
+            for(int j = 0; j<GN; j++){
+                for(int k = 0; k<GN; k++){
+		phi_dx[i][j][k] = 0.0;
+		phi_dy[i][j][k] = 0.0;
+		phi_dz[i][j][k] = 0.0;
+
+//                printf("phi_d[%2d][%2d][%2d]= %5.5f \n", i,j,k,phi_dy[i][j][k]);
+	}}}
+
         // End Gradient potential
     
         // acceleration deposition here
@@ -132,7 +144,8 @@ int main(void){
                 }
             }
         }
-        acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode_d, double *ax);
+
+        acceleration_deposition( N, a_grid, M_grid, M, x, y, z, gs, GN, mode_d, ax);
         //assign a_grid for y here
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
@@ -141,7 +154,7 @@ int main(void){
                 }
             }
         }
-        acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode_d, double *ay);
+        acceleration_deposition( N, a_grid, M_grid, M, x, y, z, gs, GN, mode_d, ay);
         //assign a_grid for z here
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
@@ -150,20 +163,21 @@ int main(void){
                 }
             }
         }
-        acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode_d, double *az);
+        acceleration_deposition( N, a_grid, M_grid, M, x, y, z, gs, GN, mode_d, az);
         // end acceleration deopsotion
-        
+        printf("%5.5f\n",ax[0]); 
         // Hermite Integral, DKD, KDK
         // Read the output of acceleration deposition and see if there should be any change.
 	//HI
-	hermite( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz  );
+	if(mode_h == 1) hermite( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G  );
         //DKD Hermite
-	hermiteDKD( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz );
+	if(mode_h == 2) hermiteDKD( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G );
 	//KDK Hermite
-	hermiteKDK( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz );
+	if(mode_h == 3) hermiteKDK( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G );
         // end HI, DKD, KDK
-        
         // Dump data
+        printf("x = %lf\n", x[0]);
+        /*
         FILE *file = fopen("Particle_position.txt","a");
         fprintf(file," t = %5.5f \n", t);
         for(int n = 0; n < N; n++)
@@ -171,8 +185,11 @@ int main(void){
             fprintf(file, "%5.5f \t %5.5f \t %5.5f \n", x[n], y[n], z[n]);
         }
         fclose(flie);
+*/
         // end dump data
-        
+        for(int n = 0; n<N; n++){
+        printf("%5.5f \t %5.5f \t %5.5f \n", x[n], y[n], z[n]); 
+       }
         t += ts;
     }
     return 0;
@@ -214,7 +231,7 @@ void mass_deposition(int N, double *M, double *x, double *y, double *z, double g
  M_grid is the output matrix (a pointer) which gives allocated mass on every grid.
  M_grid has input of zero matrix.
 */
-    double m[N][N][N][N]; //allocated mass for every single particle with m[particle][gridx][gridy][gridz]
+    double m[N][GN][GN][GN]; //allocated mass for every single particle with m[particle][gridx][gridy][gridz]
     double dx, dy, dz;
     double wx, wy, wz; //weighted function
     
@@ -282,6 +299,9 @@ void mass_deposition(int N, double *M, double *x, double *y, double *z, double g
                     if(dy<gs) wy = (1.0-dy/gs);
                     else wy = 0.0;
                     
+
+
+
                     for(int k = 0; k<GN; k++)
                     {
                         dz = fabs(z[n]-k*gs);
@@ -368,7 +388,7 @@ void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M
     for(int n = 0; n<N; n++){
         a[n] = 0.0;
     }
-    double m[N][N][N][N]; //allocated mass for every single particle with m[particle][gridx][gridy][gridz]
+    double m[N][GN][GN][GN]; //allocated mass for every single particle with m[particle][gridx][gridy][gridz]
     double dx, dy, dz;
     double wx, wy, wz; //weighted function
     
@@ -402,7 +422,7 @@ void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M
                             
                             m[n][i][j][k] = wx*wy*wz*M[n];
                             if(m[n][i][j][k] != 0.0 && M_grid[i][j][k] != 0.0)
-                            {
+                           {
                                 a[n] += m[n][i][j][k]/M_grid[i][j][k]*a_grid[i][j][k];
                             }
                             
@@ -504,6 +524,7 @@ void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M
                 }
             }
         }
+}
 //---------------------------------------------------------------------------------------------
 ////Function    :  potential  
 ////Description :  use the DFT for self-gravity to solve the poisson solver to get the potential
@@ -517,7 +538,7 @@ void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M
 ////
 ////Return      : phi
 ////--------------------------------------------------------------------------------------------
-void Potential( double *rho, double *phi )
+void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
 {
   if(BC == 0)                                       //period BC
   {
@@ -527,14 +548,20 @@ void Potential( double *rho, double *phi )
     fftw_plan fft;
     fft = fftw_plan_dft_r2c_3d( GN, GN, GN, rho, rhok, FFTW_ESTIMATE);
     fftw_execute(fft);
+    for(int i = 0; i < GN; i++){
+    for(int j = 0; j < GN; j++){
+    for(int k = 0; k < (GN/2+1); k++){
+   // printf("mkr[%2d][%2d][%2d] = %5.5f\n",i,j,k, rhok[k+(GN)*(j+GN*i)][0]);
+   // printf("mki = %5.5f\n", rhok[k+(GN)*(j+GN*i)][1]);
+    }}}
     //calculat potential phi =-4*M_PI*G/(kx**2+ky**2+kz**2)
     //need normailze with 1/N*N*N
     double _n;
-    _n = 1 / (GN*GN*GN);                                //normalize factor
+    _n = 1 / (GN*gs*GN*gs*GN*gs);                                //normalize factor
     fftw_complex *phik;
     phik = (fftw_complex*) fftw_malloc( GN*GN*(GN/2+1) * sizeof(fftw_complex) );
-    for(int i = 0; i < GN; i++)
-    for(int j = 0; j < GN; j++)
+    for(int i = 0; i < GN; i++){
+    for(int j = 0; j < GN; j++){
     for(int k = 0; k < (GN/2+1); k++)
     {
         double _k;
@@ -556,10 +583,14 @@ void Potential( double *rho, double *phi )
            ky = j;
         }
         kz = k;
-        _k = -1/((kx*kx)+(ky*ky)+(kz*kz));
+	//set up the phi in row major-form
+	
+        _k = -1/gs/gs/((kx*kx*2*M_PI/GN/gs*2*M_PI/GN/gs)+(ky*ky*2*M_PI/GN/gs*2*M_PI/GN/gs)+(kz*kz*2*M_PI/GN/gs*2*M_PI/GN/gs));
+     //   printf("k = %2f %2f %2f ,_k = %5.5f\n ",kx,ky,kz,_k);
         phik[k+(GN/2+1)*(j+GN*i)][0] = 4*M_PI*G*_k*_n*rhok[k+(GN/2+1)*(j+GN*i)][0];  //real part
         phik[k+(GN/2+1)*(j+GN*i)][1] = 4*M_PI*G*_k*_n*rhok[k+(GN/2+1)*(j+GN*i)][1];  //imagine part
-    }
+    }}}
+   
     //DC = 0
     phik[0][0] = 0; 
     phik[0][1] = 0;
@@ -567,10 +598,23 @@ void Potential( double *rho, double *phi )
     fftw_plan ifft;
     ifft = fftw_plan_dft_c2r_3d( GN, GN, GN, phik, phi, FFTW_ESTIMATE);  
     fftw_execute(ifft);
-    fftw_destroy_plan(fft)
-    fftw_destroy_plan(ifft)
-    fftw_free(rhok)
-    fftw_free(phik)
+    for(int i = 0; i < GN; i++){
+    for(int j = 0; j < GN; j++){
+    for(int k = 0; k < (GN/2+1); k++)
+    {
+      //printf("r =%5.5f\n", phik[k+(GN/2+1)*(j+GN*i)][0]);
+      //printf("i =%5.5f\n", phik[k+(GN/2+1)*(j+GN*i)][1]);
+    }}}
+    for(int i = 0; i < GN; i++){
+    for(int j = 0; j < GN; j++){
+    for(int k = 0; k < GN; k++)
+    { 
+      //printf("phi =%5.5f\n", phi[k+(GN)*(j+GN*i)]);
+    }}}
+    fftw_destroy_plan(fft);
+    fftw_destroy_plan(ifft);
+    fftw_free(rhok);
+    fftw_free(phik);
   }  
   if (BC == 1)           //isolated boundary
   {
@@ -581,7 +625,7 @@ void Potential( double *rho, double *phi )
      for (int j = 0; j < 2*GN; j++)
      for (int k = 0; k < 2*GN; k++)
      {
-         zM[k+(2*N)*(j+2*GN*i)] = 0.0;
+         zM[k+(2*GN)*(j+2*GN*i)] = 0.0;
      }
      for (int i = 0; i < GN; i++)
      for (int j = 0; j < GN; j++)
@@ -633,27 +677,27 @@ void Potential( double *rho, double *phi )
             }
       }   
       //  FFT
-      fftw_complex zMk,dftk;
-      zMK = (fftw_complex*) fftw_malloc( (2*GN)*(2*GN)*(GN+1) * sizeof(fftw_complex) );
-      dftk = (fftw_complex*) fftw_malloc( (2*GN)*(2*GN)*(GN+1) * sizeof(fftw_complex) );
+      fftw_complex *zMk, *dgfk;
+      zMk = (fftw_complex*) fftw_malloc( (2*GN)*(2*GN)*(GN+1) * sizeof(fftw_complex) );
+      dgfk = (fftw_complex*) fftw_malloc( (2*GN)*(2*GN)*(GN+1) * sizeof(fftw_complex) );
       fftw_plan fftM, fftR;
       fftM = fftw_plan_dft_r2c_3d( 2*GN, 2*GN, 2*GN, zM, zMk, FFTW_ESTIMATE );
-      fftR = fftw_plan_dft_r2c_3d( 2*GN, 2*GN, 2*GN, dft, dftk, FFTW_ESTIMATE );
+      fftR = fftw_plan_dft_r2c_3d( 2*GN, 2*GN, 2*GN, dgf, dgfk, FFTW_ESTIMATE );
       fftw_execute(fftM);
       fftw_execute(fftR);
       // convolution to get phi  ( a+bi * c+di )
-      fftw_complex conk,phik;
+      fftw_complex *conk,*phik;
       conk = (fftw_complex*) fftw_malloc( (2*GN)*(2*GN)*(GN+1) * sizeof(fftw_complex) );
       phik = (fftw_complex*) fftw_malloc( (2*GN)*(2*GN)*(GN+1) * sizeof(fftw_complex) );
       for (int i = 0; i < 2*GN; i++)
       for (int j = 0; j < 2*GN; j++)
       for (int k = 0; k < GN+1; k++)
       {
-          conk[k+(GN+1)*(j+2*GN*i)][0] = (zMk[k+(GN+1)*(j+2*GN*i)][0] * dftk[k+(GN+1)*(j+2*GN*i)][0]) - (zMk[k+(GN+1)*(j+2*GN*i)][1] * dftk[k+(GN+1)*(j+2*GN*i)][1]);  // real part 
-          conk[k+(GN+1)*(j+2*GN*i)][1] = (zMk[k+(GN+1)*(j+2*GN*i)][0] * dftk[k+(GN+1)*(j+2*GN*i)][1]) + (zMk[k+(GN+1)*(j+2*GN*i)][1] * dftk[k+(GN+1)*(j+2*GN*i)][0]);  // imagine part
+          conk[k+(GN+1)*(j+2*GN*i)][0] = (zMk[k+(GN+1)*(j+2*GN*i)][0] * dgfk[k+(GN+1)*(j+2*GN*i)][0]) - (zMk[k+(GN+1)*(j+2*GN*i)][1] * dgfk[k+(GN+1)*(j+2*GN*i)][1]);  // real part 
+          conk[k+(GN+1)*(j+2*GN*i)][1] = (zMk[k+(GN+1)*(j+2*GN*i)][0] * dgfk[k+(GN+1)*(j+2*GN*i)][1]) + (zMk[k+(GN+1)*(j+2*GN*i)][1] * dgfk[k+(GN+1)*(j+2*GN*i)][0]);  // imagine part
       }
       double _n;
-      _n = 1/(2*N*2*N*2*N );      //normailize factor
+      _n = 1/(2*GN*2*GN*2*GN );      //normailize factor
       for (int i = 0; i < 2*GN; i++)
       for (int j = 0; j < 2*GN; j++)
       for (int k = 0; k < GN+1; k++)
@@ -662,7 +706,7 @@ void Potential( double *rho, double *phi )
           phik[k+(GN+1)*(j+2*GN*i)][1] = G*_n*conk[k+(GN+1)*(j+2*GN*i)][1];  //imagine part
       }
       double *_phi; 
-      _phi = (double*) fftw_malloc( (2*GN)(2*GN)(2*GN) * sizeof(double) );
+      _phi = (double*) fftw_malloc( (2*GN)*(2*GN)*(2*GN) * sizeof(double) );
       fftw_plan ifft;
       ifft = fftw_plan_dft_c2r_3d( 2*GN, 2*GN, 2*GN, phik, _phi, FFTW_ESTIMATE );
       fftw_execute(ifft);
@@ -670,21 +714,23 @@ void Potential( double *rho, double *phi )
       for (int j = 0; j < GN; j++)
       for (int k = 0; k < GN; k++)
       {
-         phi[k+N*(j+N*i)] = _phi[k+(2*N)*(j+2*N*i)];
+         phi[k+GN*(j+GN*i)] = _phi[k+(2*GN)*(j+2*GN*i)];
       }
       fftw_destroy_plan(fftM);
       fftw_destroy_plan(fftR);
       fftw_destroy_plan(ifft);
       fftw_free(zM);
       fftw_free(zMk);
-      fftw_free(dft);
-      fftw_free(dftk);
+      fftw_free(dgf);
+      fftw_free(dgfk);
       fftw_free(conk);
       fftw_free(phik);
       fftw_free(_phi);
+  }
 }
 
-void hermite( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz )
+
+void hermite( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G )
 {
 float dt[N];         //timestep based on all particles' properties respectively.
 double rx;
@@ -712,6 +758,7 @@ double aaf[N];   //first a of all below stands for absolute value
 double aaf2[N];
 double ajf[N];
 double aa3[N];
+double sp = 0.01;
 double rex = 0;
 double rey = 0;
 double rez = 0;
@@ -746,6 +793,7 @@ double rez = 0;
       vy[n] += ( ts*ay[n] + pow(ts, 2)*jy[n]/2 );
       vz[n] += ( ts*az[n] + pow(ts, 2)*jz[n]/2 );
 			  }
+//printf("x = %lf\n", x[0]);
 
 //predict acceleration and its derivative at time t + ts
    for (int n=0; n<N; n++){
@@ -782,9 +830,9 @@ double rez = 0;
 
 //final acceleration, position and velocity
    for (int n=0; n<N; n++){
-      ax[n] += ( ts*dax[n] + pow(ts, 2)*a2x[n]/2 + pow(ts, 3)*a3x[n]/6 );
-      ay[n] += ( ts*day[n] + pow(ts, 2)*a2y[n]/2 + pow(ts, 3)*a3y[n]/6 );
-      az[n] += ( ts*daz[n] + pow(ts, 2)*a2z[n]/2 + pow(ts, 3)*a3z[n]/6 );
+      ax[n] += ( ts*jx[n] + pow(ts, 2)*a2x[n]/2 + pow(ts, 3)*a3x[n]/6 );
+      ay[n] += ( ts*jy[n] + pow(ts, 2)*a2y[n]/2 + pow(ts, 3)*a3y[n]/6 );
+      az[n] += ( ts*jz[n] + pow(ts, 2)*a2z[n]/2 + pow(ts, 3)*a3z[n]/6 );
       jx[n] = jfx[n];
       jy[n] = jfy[n];
       jz[n] = jfz[n];
@@ -816,8 +864,9 @@ double rez = 0;
        if ( ts < 1e-6 ) ts = 1e-7;
 			              }
                           }
+printf("x = %lf\n", x[0]);
 }
-void hermiteDKD( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz )
+void hermiteDKD( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G )
 {
 float dt[N];         //timestep based on all particles' properties respectively.
 double rx;
@@ -855,6 +904,7 @@ double rex = 0;
 double rey = 0;
 double rez = 0;
 double hts = ts/2;
+double sp = 0.01;
 
 //parameter initialization
    for (int i=0; i<N; i++){
@@ -885,15 +935,15 @@ double hts = ts/2;
       af2z[i] = 0;
                           }
 
-   for (n=0; n<N; n++){//first drift of 0.5ts     
+   for (int n=0; n<N; n++){//first drift of 0.5ts     
       x[n] += ( hts*vx[n] + pow(hts, 2)*ax[n]/2 + pow(hts, 3)*jx[n]/6 );
       y[n] += ( hts*vy[n] + pow(hts, 2)*ay[n]/2 + pow(hts, 3)*jy[n]/6 );
       z[n] += ( hts*vz[n] + pow(hts, 2)*az[n]/2 + pow(hts, 3)*jz[n]/6 );
 		      }
 
 //now update a and jerk at t+hts
-   for (n=0; n<N; n++){
-   for (j=0; j<N; j++){
+   for (int n=0; n<N; n++){
+   for (int j=0; j<N; j++){
    if  (n != j)       {
       rx = fabs(x[n]-x[j]);
       ry = fabs(y[n]-y[j]);
@@ -915,7 +965,7 @@ double hts = ts/2;
 		      }
 
 //kick and second drift
-   for (n=0; n<N; n++){
+   for (int n=0; n<N; n++){
       vx[n] += ( ts*ahx[n] + pow(ts, 2)*jhx[n]/2 );
       vy[n] += ( ts*ahy[n] + pow(ts, 2)*jhy[n]/2 );
       vz[n] += ( ts*ahz[n] + pow(ts, 2)*jhz[n]/2 );
@@ -987,13 +1037,13 @@ double hts = ts/2;
    ts = dt[0];
 
    for (int i=0; i<N; i++){
-   if  ( dt[i] < tmin )   {
+   if  ( dt[i] < ts )   {
        ts = dt[i];
-       if ( tmin < 1e-6 ) tmin = 1e-7;
+       if ( ts < 1e-6 ) ts = 1e-7;
          		   }
                           }
 }
-void hermiteKDK( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz )
+void hermiteKDK( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G )
 {
 float dt[N];         //timestep based on all particles' properties respectively.
 double rx;
@@ -1031,6 +1081,7 @@ double rex = 0;
 double rey = 0;
 double rez = 0;
 double hts = ts/2;
+double sp = 0.01;
    for (int i=0; i<N; i++){//parameters initialization
       aaf[i] = 0;
       aaf2[i] = 0;
@@ -1060,15 +1111,15 @@ double hts = ts/2;
                            }
 
 //first kick of 0.5ts
-   for (n=0; n<N; n++){
+   for (int n=0; n<N; n++){
       vx[n] += ( hts*ax[n] + pow(hts, 2)*jx[n]/2 );
       vy[n] += ( hts*ay[n] + pow(hts, 2)*jy[n]/2 );
       vz[n] += ( hts*az[n] + pow(hts, 2)*jz[n]/2 );
 		      }
 
 //now update a and jerk at t+hts
-   for (n=0; n<N; n++){
-   for (j=0; j<N; j++){
+   for (int n=0; n<N; n++){
+   for (int j=0; j<N; j++){
    if  (n != j)       {
       rx = fabs(x[n]-x[j]);
       ry = fabs(y[n]-y[j]);
@@ -1090,7 +1141,7 @@ double hts = ts/2;
 			}
 
 //drift and second kick
-   for (n=0; n<N; n++){
+   for (int n=0; n<N; n++){
       x[n] += ( ts*vx[n] + pow(ts, 2)*ahx[n]/2 + pow(ts, 3)*jhx[n]/6 );
       y[n] += ( ts*vy[n] + pow(ts, 2)*ahy[n]/2 + pow(ts, 3)*jhy[n]/6 );
       z[n] += ( ts*vz[n] + pow(ts, 2)*ahz[n]/2 + pow(ts, 3)*jhz[n]/6 );
