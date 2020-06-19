@@ -41,7 +41,7 @@ int main(void){
         M[n] = 1.0;//*(double)rand()/RAND_MAX;// 10 is maxium mass
         x[n] = 1.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
         y[n] = 1.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
-        z[n] = 1.0 + (double)  n;//(double)rand()/RAND_MAX*(GN-1);
+        z[n] = 1.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
         vx[n] =0.0;// (double)rand()/RAND_MAX*(GN-1);
         vy[n] =0.0;// (double)rand()/RAND_MAX*(GN-1);
         vz[n] =0.0;// (double)rand()/RAND_MAX*(GN-1);
@@ -61,7 +61,7 @@ int main(void){
         // calculate potential here
 	//get rho in row-major form
         int rhoN = GN*GN*GN;
-        double rho[rhoN], phi_grid[GN][GN][GN];
+        double rho[rhoN], phi_grid[GN+2][GN+2][GN+2];
         int index;
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
@@ -84,51 +84,39 @@ int main(void){
         Potential(  rho,  phi , G, BC, GN, gs);
         // I need the row-major rho matrix and a row-major phi matrix with all 0
         // it will get the row-major phi matrix return 
-        //http://www.fftw.org/fftw3_doc/Row_002dmajor-Format.html#Row_002dmajor-Format
-        for(int i = 0; i<GN; i++){
-            for(int j = 0; j<GN; j++){
-                for(int k = 0; k<GN; k++){
-                    index = k+GN*(j+GN*i);
+        for(int i = 1; i<GN+1; i++){
+            for(int j = 1; j<GN+1; j++){
+                for(int k = 1; k<GN+1; k++){
+                    index = (k-1)+GN*((j-1)+GN*(i-1));
                     phi_grid[i][j][k] = phi[index];
-         //            printf("phi[%2d][%2d][%2d]= %5.5f \n", i,j,k,phi_grid[i][j][k]);
                 }
+            }
+        }
+        //padding boundary for phi
+        for(int l = 0; l<GN+2; l++){
+            for(int m = 0; m<GN+2; m++){
+                phi_grid[0][l][m] = 2.0*phi_grid[1][l][m] - phi_grid[2][l][m];
+                phi_grid[GN+1][l][m] = 2.0*phi_grid[GN][l][m] - phi_grid[GN-1][l][m];
+                phi_grid[l][0][m] = 2.0*phi_grid[l][1][m] - phi_grid[l][2][m];
+                phi_grid[l][GN+1][m] = 2.0*phi_grid[l][GN][m] - phi_grid[l][GN-1][m];
+                phi_grid[l][m][0] = 2.0*phi_grid[l][m][1] - phi_grid[l][m][2];
+                phi_grid[l][m][GN+1] = 2.0*phi_grid[l][m][GN] - phi_grid[l][m][GN-1];
             }
         }
         // end potential
         
         // Gradient of potential
         float phi_dx[GN][GN][GN], phi_dy[GN][GN][GN], phi_dz[GN][GN][GN];
-        // gradient for boundary
-        for(int l = 0; l<GN; l++){
-            for(int m = 0; m<GN; m++){
-                phi_dx[0][l][m] = (phi_grid[1][l][m] - phi_grid[0][l][m])/gs;
-                phi_dx[GN-1][l][m] = (phi_grid[GN-1][l][m] - phi_grid[GN-2][l][m])/gs;
-                phi_dy[l][0][m] = (phi_grid[l][1][m] - phi_grid[l][0][m])/gs;
-                phi_dy[l][GN-1][m] = (phi_grid[l][GN-1][m] - phi_grid[l][GN-2][m])/gs;
-                phi_dz[l][m][0] = (phi_grid[l][m][1] - phi_grid[l][m][0])/gs;
-                phi_dz[l][m][GN-1] = (phi_grid[l][m][GN-1] - phi_grid[l][m][GN-2])/gs;
-            }
-        }
         //gradient inside
-        for(int i = 1; i<GN-1; i++){
-            for(int j = 1; j<GN-1; j++){
-                for(int k = 1; k<GN-1; k++){
-                    phi_dx[i][j][k] = (phi_grid[i+1][j][k]-phi_grid[i-1][j][k])/(2*gs);
-                    phi_dy[i][j][k] = (phi_grid[i][j+1][k]-phi_grid[i][j-1][k])/(2*gs);
-                    phi_dz[i][j][k] = (phi_grid[i][j][k+1]-phi_grid[i][j][k-1])/(2*gs);
-                //    printf("%5.5f\n",phi_dx[i][j][k]);
+        for(int i = 0; i<GN; i++){
+            for(int j = 0; j<GN; j++){
+                for(int k = 0; k<GN; k++){
+                    phi_dx[i][j][k] = (phi_grid[i+2][j][k]-phi_grid[i][j][k])/(2*gs);
+                    phi_dy[i][j][k] = (phi_grid[i][j+2][k]-phi_grid[i][j][k])/(2*gs);
+                    phi_dz[i][j][k] = (phi_grid[i][j][k+2]-phi_grid[i][j][k])/(2*gs);
                 }
             }
         }
-	for(int i = 0; i<GN; i++){
-            for(int j = 0; j<GN; j++){
-                for(int k = 0; k<GN; k++){
-		phi_dx[i][j][k] = 0.0;
-		phi_dy[i][j][k] = 0.0;
-		phi_dz[i][j][k] = 0.0;
-
-//                printf("phi_d[%2d][%2d][%2d]= %5.5f \n", i,j,k,phi_dy[i][j][k]);
-	}}}
 
         // End Gradient potential
     
@@ -165,18 +153,16 @@ int main(void){
         }
         acceleration_deposition( N, a_grid, M_grid, M, x, y, z, gs, GN, mode_d, az);
         // end acceleration deopsotion
-        printf("%5.5f\n",ax[0]); 
         // Hermite Integral, DKD, KDK
         // Read the output of acceleration deposition and see if there should be any change.
-	//HI
-	if(mode_h == 1) hermite( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G  );
+        //HI
+        if(mode_h == 1) hermite( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G  );
         //DKD Hermite
-	if(mode_h == 2) hermiteDKD( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G );
-	//KDK Hermite
-	if(mode_h == 3) hermiteKDK( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G );
+        if(mode_h == 2) hermiteDKD( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G );
+        //KDK Hermite
+        if(mode_h == 3) hermiteKDK( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G );
         // end HI, DKD, KDK
         // Dump data
-        printf("x = %lf\n", x[0]);
         /*
         FILE *file = fopen("Particle_position.txt","a");
         fprintf(file," t = %5.5f \n", t);

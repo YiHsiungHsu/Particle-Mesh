@@ -2,15 +2,17 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include <omp.h>
 
 float ***buildGrid(int numRows, int numCols, int numLevels);
-void mass_deposition( int N, double *M, double *x, double *y, double *z, double gs, int GN, int mode, float ****M_grid);
+void mass_deposition( int N, int Nthread,double *M, double *x, double *y, double *z, double gs, int GN, int mode, float ****M_grid);
 
 int main(void){
     double gs = 1.0;
     int GN = 5;
     int N = 2;
     double M[N], x[N], y[N], z[N];
+    int Nthread = 1;
     /*
     srand( time(NULL) );//set random seed for creating random number
     for(int n = 0; n<N; n++){
@@ -27,11 +29,11 @@ int main(void){
     y[1] = 3.2;
     z[0] = 0.4;
     z[1] = 2.1;
-    int mode = 3;
+    int mode = 2;
     float ***M_grid;
      
 
-    mass_deposition(N, M, x, y, z, gs, GN, mode, &M_grid);
+    mass_deposition(N, Nthread, M, x, y, z, gs, GN, mode, &M_grid);
     
     printf( "\nM_grid:\n" );
     for(int k = 0; k<GN; k++){
@@ -70,7 +72,7 @@ float ***buildGrid(int numRows, int numCols, int numLevels)
     return levels;
 }
 
-void mass_deposition(int N, double *M, double *x, double *y, double *z, double gs, int GN, int mode, float ****M_grid)
+void mass_deposition(int N, int Nthread,double *M, double *x, double *y, double *z, double gs, int GN, int mode, float ****M_grid)
 {
 /*
  mode 1: NGP
@@ -82,12 +84,15 @@ void mass_deposition(int N, double *M, double *x, double *y, double *z, double g
  M_grid is the output matrix (a pointer) which gives allocated mass on every grid.
  M_grid has input of zero matrix.
 */
-    double m[N][N][N][N]; //allocated mass for every single particle with m[particle][gridx][gridy][gridz]
+    double m[N][GN][GN][GN]; //allocated mass for every single particle with m[particle][gridx][gridy][gridz]
     double dx, dy, dz;
     double wx, wy, wz; //weighted function
     
     *M_grid = buildGrid(GN,GN,GN);
     // initialize M_grid
+# pragma omp parallel num_threads( Nthread )
+{
+    # pragma omp parallel for collapse( 3 )
     for(int i = 0; i<GN; i++){
         for(int j = 0; j<GN; j++){
             for(int k = 0; k<GN; k++){
@@ -95,7 +100,6 @@ void mass_deposition(int N, double *M, double *x, double *y, double *z, double g
             }
         }
     }
-    
     if(mode == 1)
     {
         for(int n = 0; n<N; n++)
@@ -125,7 +129,6 @@ void mass_deposition(int N, double *M, double *x, double *y, double *z, double g
                         else wz = 0.0;
                         
                         m[n][i][j][k] = wx*wy*wz*M[n];
-                        (*M_grid)[i][j][k] += (float)m[n][i][j][k];
                         
                     }
                 }
@@ -158,7 +161,6 @@ void mass_deposition(int N, double *M, double *x, double *y, double *z, double g
                         else wz = 0.0;
                         
                         m[n][i][j][k] = wx*wy*wz*M[n];
-                        (*M_grid)[i][j][k] += (float)m[n][i][j][k];
                         
                     }
                 }
@@ -213,10 +215,21 @@ void mass_deposition(int N, double *M, double *x, double *y, double *z, double g
                         
                         m[n][i][j][k] = wx*wy*wz*M[n];
 
-                        (*M_grid)[i][j][k] += (float)m[n][i][j][k];
                     }
                 }
             }
         }
     }
+//# pragma omp barrier
+# pragma omp parallel for collapse( 4 )
+        for(int n = 0; n<N; n++){
+            for(int i = 0; i<GN; i++){
+                for(int j = 0; j<GN; j++){
+                    for(int k = 0; k<GN; k++){
+                        (*M_grid)[i][j][k] += (float)m[n][i][j][k];
+                    }
+                }
+            }
+        }
+}
 }
