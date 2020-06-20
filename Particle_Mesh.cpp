@@ -22,11 +22,11 @@ int main(void){
     const int N = 2; // number of particles
     double M[N], x[N], y[N], z[N];
     const int mode_d = 1; // choose the mode for deposition
-    const int mode_h = 2; // choose the mode for hermite
+    const int mode_h = 1; // choose the mode for hermite
     const double t_end = 0.05; // end time
     const double ts = 0.05; //time step size of each step
     const double G = 0.25/M_PI; //(m3 kg-1 s-2)
-    const int BC = 1;         // choose boundary condition (0=isolated 1=period)
+    const int BC = 0;         // choose boundary condition (0=isolated 1=period)
     // end constants
 	    
     
