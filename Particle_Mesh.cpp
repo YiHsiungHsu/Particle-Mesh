@@ -816,6 +816,15 @@ double rez = 0;
       jfy[n] += G*M[j]*(rvy/sqrt(pow(rey, 3)) + 3*(rvy*ry)*ry/sqrt(pow(rey, 5)));
       jfz[n] += G*M[j]*(rvz/sqrt(pow(rez, 3)) + 3*(rvz*rz)*rz/sqrt(pow(rez, 5)));
 			   }
+   else                    {
+      afx[n] += 0;
+      jfx[n] += 0;
+      afy[n] += 0;
+      jfy[n] += 0;
+      afz[n] += 0;
+      jfz[n] += 0;
+                           }
+
    			   }
    			   }
 
@@ -943,7 +952,7 @@ double sp = 0.01;
 //now update a and jerk at t+hts
    for (int n=0; n<N; n++){
    for (int j=0; j<N; j++){
-   if  (n != j)       {
+   if  (n != j)           {
       rx = x[j]-x[n];
       ry = y[j]-y[n];
       rz = z[j]-z[n];
@@ -959,7 +968,15 @@ double sp = 0.01;
       jhx[n] += G*M[j]*(rvx/sqrt(pow(rex, 3)) + 3*(rvx*rx)*rx/sqrt(pow(rex, 5)));
       jhy[n] += G*M[j]*(rvy/sqrt(pow(rey, 3)) + 3*(rvy*ry)*ry/sqrt(pow(rey, 5)));
       jhz[n] += G*M[j]*(rvz/sqrt(pow(rez, 3)) + 3*(rvz*rz)*rz/sqrt(pow(rez, 5)));
-		      }
+		           }
+   else                    {
+      ahx[n] += 0;
+      jhx[n] += 0;
+      ahy[n] += 0;
+      jhy[n] += 0;
+      ahz[n] += 0;
+      jhz[n] += 0;
+                           }
 		      }
 		      }
 
@@ -993,6 +1010,14 @@ double sp = 0.01;
       jfy[n] += G*M[j]*(rvy/sqrt(pow(rey, 3)) + 3*(rvy*ry)*ry/sqrt(pow(rey, 5)));
       jfz[n] += G*M[j]*(rvz/sqrt(pow(rez, 3)) + 3*(rvz*rz)*rz/sqrt(pow(rez, 5)));
 			   }
+   else                    {
+      afx[n] += 0;
+      jfx[n] += 0;
+      afy[n] += 0;
+      jfy[n] += 0;
+      afz[n] += 0;
+      jfz[n] += 0;
+                           }
    			   }
    			   }
 
@@ -1134,9 +1159,17 @@ double sp = 0.01;
       jhx[n] += G*M[j]*(rvx/sqrt(pow(rex, 3)) + 3*(rvx*rx)*rx/sqrt(pow(rex, 5)));
       jhy[n] += G*M[j]*(rvy/sqrt(pow(rey, 3)) + 3*(rvy*ry)*ry/sqrt(pow(rey, 5)));
       jhz[n] += G*M[j]*(rvz/sqrt(pow(rez, 3)) + 3*(rvz*rz)*rz/sqrt(pow(rez, 5)));
-			}
-   			}
-			}
+			   }
+   else                    {
+      ahx[n] += 0;
+      jhx[n] += 0;
+      ahy[n] += 0;
+      jhy[n] += 0;
+      ahz[n] += 0;
+      jhz[n] += 0;
+                           }
+   			   }
+			   }
 
 //drift and second kick
    for (int n=0; n<N; n++){
@@ -1168,6 +1201,14 @@ double sp = 0.01;
       jfy[n] += G*M[j]*(rvy/sqrt(pow(rey, 3)) + 3*(rvy*ry)*ry/sqrt(pow(rey, 5)));
       jfz[n] += G*M[j]*(rvz/sqrt(pow(rez, 3)) + 3*(rvz*rz)*rz/sqrt(pow(rez, 5)));
      			   }
+   else                    {
+      afx[n] += 0;
+      jfx[n] += 0;
+      afy[n] += 0;
+      jfy[n] += 0;
+      afz[n] += 0;
+      jfz[n] += 0;
+                           }
 			   }
       			   }
 
