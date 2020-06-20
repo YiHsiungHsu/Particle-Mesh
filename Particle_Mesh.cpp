@@ -424,7 +424,7 @@ void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M
                             m[n][i][j][k] = (float)wx*wy*wz*M[n];
                             if(m[n][i][j][k] != 0.0 && M_grid[i][j][k] != 0.0)
                            {
-                                a[n] += (double)m[n][i][j][k]/M_grid[i][j][k]*a_grid[i][j][k];
+                                a[n] += (double)m[n][i][j][k]/M_grid[i][j][k]*a_grid[i][j][k]/M[n];
                             }
                             
                         }
@@ -460,7 +460,7 @@ void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M
                             m[n][i][j][k] = (float)wx*wy*wz*M[n];
                             if(m[n][i][j][k] != 0.0 && M_grid[i][j][k] != 0.0)
                             {
-                                a[n] += (double)m[n][i][j][k]/M_grid[i][j][k]*a_grid[i][j][k];
+                                a[n] += (double)m[n][i][j][k]/M_grid[i][j][k]*a_grid[i][j][k]/M[n];
                             }
                             
                         }
@@ -517,7 +517,7 @@ void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M
                             m[n][i][j][k] = (float)wx*wy*wz*M[n];
                             if(m[n][i][j][k] != 0.0 && M_grid[i][j][k] != 0.0)
                             {
-                                a[n] += (double)m[n][i][j][k]/M_grid[i][j][k]*a_grid[i][j][k];
+                                a[n] += (double)m[n][i][j][k]/M_grid[i][j][k]*a_grid[i][j][k]/M[n];
                             }
                  
                         }

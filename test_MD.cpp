@@ -8,7 +8,7 @@
 float ***buildGrid(int numRows, int numCols, int numLevels);
 void mass_deposition( int N, int Nthread,double *M, double *x, double *y, double *z, double gs, int GN, int mode, float ****M_grid);
 
-int main(void){
+int main(int argc, char *argv[] ){
     //mpi initialize
     int NRank, MyRank;
     MPI_Init( &argc, &argv );
@@ -36,29 +36,73 @@ int main(void){
     y[1] = 3.2;
     z[0] = 0.4;
     z[1] = 2.1;
-    int mode = 2;
+    int mode = 1;
     float ***M_grid;
      
 
-    int sendcount = N/NRank;
+    int SendCount = N/NRank;
     int RecvCount = SendCount;
-    const int RootRank = 0;
-    float *SendBuf = new float [N]; // only relevant for the root rank
-    float *RecvBuf = new float [RecvCount];
+    const int RootRank = NRank-1;
+    double *SendBufm = new double [N]; // only relevant for the root rank
+    double *RecvBufm = new double [RecvCount];
+    double *SendBufx = new double [N]; // only relevant for the root rank
+    double *RecvBufx = new double [RecvCount];
+    double *SendBufy = new double [N]; // only relevant for the root rank
+    double *RecvBufy = new double [RecvCount];
+    double *SendBufz = new double [N]; // only relevant for the root rank
+    double *RecvBufz = new double [RecvCount];
     
     if(MyRank = RootRank){
         for(int n=0; n<N; n++){
-            SendBuf [n] = M[n];
+            SendBufm [n] = M[n];
+            SendBufx [n] = x[n];
+            SendBufy [n] = y[n];
+            SendBufz [n] = z[n];
+        }
+    }
+    MPI_Scatter( SendBufm, SendCount, MPI_DOUBLE,RecvBufm, RecvCount, MPI_DOUBLE, RootRank, MPI_COMM_WORLD );
+    MPI_Scatter( SendBufx, SendCount, MPI_DOUBLE,RecvBufx, RecvCount, MPI_DOUBLE, RootRank, MPI_COMM_WORLD );
+    MPI_Scatter( SendBufy, SendCount, MPI_DOUBLE,RecvBufy, RecvCount, MPI_DOUBLE, RootRank, MPI_COMM_WORLD );
+    MPI_Scatter( SendBufz, SendCount, MPI_DOUBLE,RecvBufz, RecvCount, MPI_DOUBLE, RootRank, MPI_COMM_WORLD );
+    
+    mass_deposition(RecvCount, Nthread, RecvBufm, RecvBufx, RecvBufy, RecvBufz, gs, GN, mode, &M_grid);
+    int Count = GN*GN*GN;
+    double *SendBuf = new double [Count];
+    double *RecvBuf = new double [Count];
+    int index;
+    for(int i = 0; i<GN; i++){
+        for(int j = 0; j<GN; j++){
+            for(int k = 0; k<GN; k++){
+                index = k+GN*(j+GN*i);
+                SendBuf[index] = (double)M_grid[i][j][k];
+            }
+        }
+    }
+    MPI_Reduce( SendBuf, RecvBuf, Count, MPI_DOUBLE, MPI_SUM, RootRank, MPI_COMM_WORLD );
+    double Buf[Count];
+    if(MyRank == RootRank){
+        for(int i = 0; i<Count ; i++){
+            Buf[i] = RecvBuf[i];
+        }
+    }
+    else{
+        for(int i = 0; i<Count ; i++){
+            Buf[i] = 0.0;
+        }
+    }
+    MPI_Bcast( Buf, Count, MPI_DOUBLE, RootRank, MPI_COMM_WORLD );
+    for(int i = 0; i<GN; i++){
+        for(int j = 0; j<GN; j++){
+            for(int k = 0; k<GN; k++){
+                index = (k)+GN*((j)+GN*(i));
+                M_grid[i][j][k] = (float)Buf[index];
+            }
         }
     }
     
-    MPI_Scatter( SendBuf, SendCount, MPI_INT,RecvBuf, RecvCount, MPI_FLOAT, RootRank, MPI_COMM_WORLD );
+    MPI_Finalize();
     
-    mass_deposition(RecvCount, Nthread, RecvBuf, x, y, z, gs, GN, mode, &M_grid);
-    delete [] SendBuf;
-    delete [] RecvBuf;
-    
-    printf( "\nM_grid:\n" );
+    printf( "\nphi_grid:\n" );
     for(int k = 0; k<GN; k++){
         printf( "k = %2d \n", k );
         for(int i = 0; i<GN; i++){
@@ -68,7 +112,8 @@ int main(void){
             printf( "\n" );
         }
     }
-    return 0;
+    
+    return EXIT_SUCCESS;
 }
 
 
