@@ -938,25 +938,33 @@ double sp = 0.01;
 //now update a and jerk at t+hts
    for (int n=0; n<N; n++){
    for (int j=0; j<N; j++){
-   if  (n != j)       {
-      rx = fabs(x[n]-x[j]);
-      ry = fabs(y[n]-y[j]);
-      rz = fabs(z[n]-z[j]);
+   if  (n != j)           {
+      rx = x[j]-x[n];
+      ry = y[j]-y[n];
+      rz = z[j]-z[n];
       rex = pow(rx, 2)+pow(sp, 2);
       rey = pow(ry, 2)+pow(sp, 2);
       rez = pow(rz, 2)+pow(sp, 2);
       ahx[n] += G*M[j]*rx/sqrt(pow(rex, 3));
       ahy[n] += G*M[j]*ry/sqrt(pow(rey, 3));
       ahz[n] += G*M[j]*rz/sqrt(pow(rez, 3));
-      rvx = fabs(vx[n] - vx[j]);
-      rvy = fabs(vy[n] - vy[j]);
-      rvz = fabs(vz[n] - vz[j]);
+      rvx = vx[j] - vx[n];
+      rvy = vy[j] - vy[n];
+      rvz = vz[j] - vz[n];
       jhx[n] += G*M[j]*(rvx/sqrt(pow(rex, 3)) + 3*(rvx*rx)*rx/sqrt(pow(rex, 5)));
       jhy[n] += G*M[j]*(rvy/sqrt(pow(rey, 3)) + 3*(rvy*ry)*ry/sqrt(pow(rey, 5)));
       jhz[n] += G*M[j]*(rvz/sqrt(pow(rez, 3)) + 3*(rvz*rz)*rz/sqrt(pow(rez, 5)));
-		      }
-		      }
-		      }
+		           }
+   else			   {
+      afx[n] += 0;
+      afy[n] += 0;
+      afz[n] += 0;
+      jfx[n] += 0;
+      jfy[n] += 0;
+      jfz[n] += 0;
+	   		   }
+		           }
+		           }
 
 //kick and second drift
    for (int n=0; n<N; n++){
@@ -972,22 +980,30 @@ double sp = 0.01;
    for (int n=0; n<N; n++){
    for (int j=0; j<N; j++){
    if  (n != j)           {
-      rx = fabs(x[n]-x[j]);
-      ry = fabs(y[n]-y[j]);
-      rz = fabs(z[n]-z[j]);
+      rx = x[j]-x[n];
+      ry = y[j]-y[n];
+      rz = z[j]-z[n];
       rex = pow(rx, 2)+pow(sp, 2);
       rey = pow(ry, 2)+pow(sp, 2);
       rez = pow(rz, 2)+pow(sp, 2);
       afx[n] += G*M[j]*rx/sqrt(pow(rex, 3));
       afy[n] += G*M[j]*ry/sqrt(pow(rey, 3));
       afz[n] += G*M[j]*rz/sqrt(pow(rez, 3));
-      rvx = fabs(vx[n] - vx[j]);
-      rvy = fabs(vy[n] - vy[j]);
-      rvz = fabs(vz[n] - vz[j]);
+      rvx = vx[j] - vx[n];
+      rvy = vy[j] - vy[n]);
+      rvz = vz[j] - vz[n]);
       jfx[n] += G*M[j]*(rvx/sqrt(pow(rex, 3)) + 3*(rvx*rx)*rx/sqrt(pow(rex, 5)));
       jfy[n] += G*M[j]*(rvy/sqrt(pow(rey, 3)) + 3*(rvy*ry)*ry/sqrt(pow(rey, 5)));
       jfz[n] += G*M[j]*(rvz/sqrt(pow(rez, 3)) + 3*(rvz*rz)*rz/sqrt(pow(rez, 5)));
 			   }
+   else			   {
+      afx[n] += 0;
+      afy[n] += 0;
+      afz[n] += 0;
+      jfx[n] += 0;
+      jfy[n] += 0;
+      jfz[n] += 0;
+	   		   }
    			   }
    			   }
 
@@ -1114,25 +1130,33 @@ double sp = 0.01;
 //now update a and jerk at t+hts
    for (int n=0; n<N; n++){
    for (int j=0; j<N; j++){
-   if  (n != j)       {
-      rx = fabs(x[n]-x[j]);
-      ry = fabs(y[n]-y[j]);
-      rz = fabs(z[n]-z[j]);
+   if  (n != j)           {
+      rx = x[j]-x[n];
+      ry = y[j]-y[n];
+      rz = z[j]-z[n];
       rex = pow(rx, 2)+pow(sp, 2);
       rey = pow(ry, 2)+pow(sp, 2);
       rez = pow(rz, 2)+pow(sp, 2);
       ahx[n] += G*M[j]*rx/sqrt(pow(rex, 3));
       ahy[n] += G*M[j]*ry/sqrt(pow(rey, 3));
       ahz[n] += G*M[j]*rz/sqrt(pow(rez, 3));
-      rvx = fabs(vx[n] - vx[j]);
-      rvy = fabs(vy[n] - vy[j]);
-      rvz = fabs(vz[n] - vz[j]);
+      rvx = vx[j] - vx[n];
+      rvy = vy[j] - vy[n];
+      rvz = vz[j] - vz[n];
       jhx[n] += G*M[j]*(rvx/sqrt(pow(rex, 3)) + 3*(rvx*rx)*rx/sqrt(pow(rex, 5)));
       jhy[n] += G*M[j]*(rvy/sqrt(pow(rey, 3)) + 3*(rvy*ry)*ry/sqrt(pow(rey, 5)));
       jhz[n] += G*M[j]*(rvz/sqrt(pow(rez, 3)) + 3*(rvz*rz)*rz/sqrt(pow(rez, 5)));
-			}
-   			}
-			}
+			   }
+   else			   {
+      afx[n] += 0;
+      afy[n] += 0;
+      afz[n] += 0;
+      jfx[n] += 0;
+      jfy[n] += 0;
+      jfz[n] += 0;
+	   		   }
+   			   }
+			   }
 
 //drift and second kick
    for (int n=0; n<N; n++){
@@ -1148,22 +1172,30 @@ double sp = 0.01;
    for (int n=0; n<N; n++){
    for (int j=0; j<N; j++){
    if  (n != j)           {
-      rx = fabs(x[n]-x[j]);
-      ry = fabs(y[n]-y[j]);
-      rz = fabs(z[n]-z[j]);
+      rx = x[j]-x[n];
+      ry = y[j]-y[n];
+      rz = z[j]-z[n];
       rex = pow(rx, 2)+pow(sp, 2);
       rey = pow(ry, 2)+pow(sp, 2);
       rez = pow(rz, 2)+pow(sp, 2);
       afx[n] += G*M[j]*rx/sqrt(pow(rex, 3));
       afy[n] += G*M[j]*ry/sqrt(pow(rey, 3));
       afz[n] += G*M[j]*rz/sqrt(pow(rez, 3));
-      rvx = fabs(vx[n] - vx[j]);
-      rvy = fabs(vy[n] - vy[j]);
-      rvz = fabs(vz[n] - vz[j]);
+      rvx = vx[j] - vx[n];
+      rvy = vy[j] - vy[n];
+      rvz = vz[j] - vz[n];
       jfx[n] += G*M[j]*(rvx/sqrt(pow(rex, 3)) + 3*(rvx*rx)*rx/sqrt(pow(rex, 5)));
       jfy[n] += G*M[j]*(rvy/sqrt(pow(rey, 3)) + 3*(rvy*ry)*ry/sqrt(pow(rey, 5)));
       jfz[n] += G*M[j]*(rvz/sqrt(pow(rez, 3)) + 3*(rvz*rz)*rz/sqrt(pow(rez, 5)));
      			   }
+   else			   {
+      afx[n] += 0;
+      afy[n] += 0;
+      afz[n] += 0;
+      jfx[n] += 0;
+      jfy[n] += 0;
+      jfz[n] += 0;
+	   		   }
 			   }
       			   }
 
