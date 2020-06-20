@@ -18,15 +18,15 @@ int main(void){
     // constants
     // add any necessary const. here
     const double gs = 1.0; // grid size (distance between every grid point)
-    const int GN = 4; //box size. I set equilateral box, tell me if you need to change it.
-    const int N = 1; // number of particles
+    const int GN = 8; //box size. I set equilateral box, tell me if you need to change it.
+    const int N = 2; // number of particles
     double M[N], x[N], y[N], z[N];
     const int mode_d = 1; // choose the mode for deposition
-    const int mode_h = 1; // choose the mode for hermite
+    const int mode_h = 2; // choose the mode for hermite
     const double t_end = 0.05; // end time
     const double ts = 0.05; //time step size of each step
-    const double G = 0.25/M_PI*1.0e-10; //(m3 kg-1 s-2)
-    const int BC = 0;         // choose boundary condition (0=isolated 1=period)
+    const double G = 0.25/M_PI; //(m3 kg-1 s-2)
+    const int BC = 1;         // choose boundary condition (0=isolated 1=period)
     // end constants
 	    
     
@@ -38,7 +38,7 @@ int main(void){
     double vx[N], vy[N], vz[N], jx[N], jy[N], jz[N]; // jerk for x, y, z. j stand for jerk	
     srand( time(NULL) );// set random seed for creating random number
     for(int n = 0; n<N; n++){
-        M[n] = 1.0;//*(double)rand()/RAND_MAX;// 10 is maxium mass
+        M[n] = 100.0;//*(double)rand()/RAND_MAX;// 10 is maxium mass
         x[n] = 1.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
         y[n] = 1.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
         z[n] = 1.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
@@ -83,7 +83,7 @@ int main(void){
         }
         Potential(  rho,  phi , G, BC, GN, gs);
         // I need the row-major rho matrix and a row-major phi matrix with all 0
-        // it will get the row-major phi matrix return 
+        // it will get the row-major phi matrix return
         for(int i = 1; i<GN+1; i++){
             for(int j = 1; j<GN+1; j++){
                 for(int k = 1; k<GN+1; k++){
@@ -111,9 +111,9 @@ int main(void){
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
                 for(int k = 0; k<GN; k++){
-                    phi_dx[i][j][k] = (phi_grid[i+2][j][k]-phi_grid[i][j][k])/(2*gs);
-                    phi_dy[i][j][k] = (phi_grid[i][j+2][k]-phi_grid[i][j][k])/(2*gs);
-                    phi_dz[i][j][k] = (phi_grid[i][j][k+2]-phi_grid[i][j][k])/(2*gs);
+                    phi_dx[i][j][k] = (phi_grid[i+2][j+1][k+1]-phi_grid[i][j+1][k+1])/(2*gs);
+                    phi_dy[i][j][k] = (phi_grid[i+1][j+2][k+1]-phi_grid[i+1][j][k+1])/(2*gs);
+                    phi_dz[i][j][k] = (phi_grid[i+1][j+1][k+2]-phi_grid[i+1][j+1][k])/(2*gs);
                 }
             }
         }
@@ -152,6 +152,9 @@ int main(void){
             }
         }
         acceleration_deposition( N, a_grid, M_grid, M, x, y, z, gs, GN, mode_d, az);
+        for(int n;n<N;n++){
+            printf("a[%2d] = %5.5f %5.5f %5.5f\n", n, ax[n], ay[n], az[n]);
+        }
         // end acceleration deopsotion
         // Hermite Integral, DKD, KDK
         // Read the output of acceleration deposition and see if there should be any change.
@@ -161,6 +164,9 @@ int main(void){
         if(mode_h == 2) hermiteDKD( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G );
         //KDK Hermite
         if(mode_h == 3) hermiteKDK( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G );
+        for(int n;n<N;n++){
+            printf("a[%2d] = %5.5f %5.5f %5.5f\n", n, ax[n], ay[n], az[n]);
+        }
         // end HI, DKD, KDK
         // Dump data
         /*
@@ -374,9 +380,18 @@ void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M
     for(int n = 0; n<N; n++){
         a[n] = 0.0;
     }
-    double m[N][GN][GN][GN]; //allocated mass for every single particle with m[particle][gridx][gridy][gridz]
+    float m[N][GN][GN][GN]; //allocated mass for every single particle with m[particle][gridx][gridy][gridz]
     double dx, dy, dz;
     double wx, wy, wz; //weighted function
+    for(int n = 0; n<N; n++){
+        for(int i = 0; i<GN; i++){
+            for(int j = 0; j<GN; j++){
+                for(int k = 0; k<GN; k++){
+                    m[n][i][j][k] = 0.0;
+                }
+            }
+        }
+    }
     
     if(mode == 1)
         {
@@ -406,10 +421,10 @@ void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M
                             else if(dz==0.5*gs) wz = 0.5;
                             else wz = 0.0;
                             
-                            m[n][i][j][k] = wx*wy*wz*M[n];
+                            m[n][i][j][k] = (float)wx*wy*wz*M[n];
                             if(m[n][i][j][k] != 0.0 && M_grid[i][j][k] != 0.0)
                            {
-                                a[n] += m[n][i][j][k]/M_grid[i][j][k]*a_grid[i][j][k];
+                                a[n] += (double)m[n][i][j][k]/M_grid[i][j][k]*a_grid[i][j][k];
                             }
                             
                         }
@@ -442,10 +457,10 @@ void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M
                             if(dz<gs) wz = (1.0-dz/gs);
                             else wz = 0.0;
                             
-                            m[n][i][j][k] = wx*wy*wz*M[n];
+                            m[n][i][j][k] = (float)wx*wy*wz*M[n];
                             if(m[n][i][j][k] != 0.0 && M_grid[i][j][k] != 0.0)
                             {
-                                a[n] += m[n][i][j][k]/M_grid[i][j][k]*a_grid[i][j][k];
+                                a[n] += (double)m[n][i][j][k]/M_grid[i][j][k]*a_grid[i][j][k];
                             }
                             
                         }
@@ -499,10 +514,10 @@ void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M
                             }
                             else wz = 0.0;
                             
-                            m[n][i][j][k] = wx*wy*wz*M[n];
+                            m[n][i][j][k] = (float)wx*wy*wz*M[n];
                             if(m[n][i][j][k] != 0.0 && M_grid[i][j][k] != 0.0)
                             {
-                                a[n] += m[n][i][j][k]/M_grid[i][j][k]*a_grid[i][j][k];
+                                a[n] += (double)m[n][i][j][k]/M_grid[i][j][k]*a_grid[i][j][k];
                             }
                  
                         }
@@ -785,30 +800,22 @@ double rez = 0;
    for (int n=0; n<N; n++){
    for (int j=0; j<N; j++){
    if  (n != j)           {
-      rx = x[j]-x[n];
-      ry = y[j]-y[n];
-      rz = z[j]-z[n];
+      rx = fabs(x[n]-x[j]);
+      ry = fabs(y[n]-y[j]);
+      rz = fabs(z[n]-z[j]);
       rex = pow(rx, 2)+pow(sp, 2);
       rey = pow(ry, 2)+pow(sp, 2);
       rez = pow(rz, 2)+pow(sp, 2);
       afx[n] += G*M[j]*rx/sqrt(pow(rex, 3));
       afy[n] += G*M[j]*ry/sqrt(pow(rey, 3));
       afz[n] += G*M[j]*rz/sqrt(pow(rez, 3));
-      rvx = vx[j] - vx[n];
-      rvy = vy[j] - vy[n];
-      rvz = vz[j] - vz[n];
+      rvx = fabs(vx[n] - vx[j]);
+      rvy = fabs(vy[n] - vy[j]);
+      rvz = fabs(vz[n] - vz[j]);
       jfx[n] += G*M[j]*(rvx/sqrt(pow(rex, 3)) + 3*(rvx*rx)*rx/sqrt(pow(rex, 5)));
       jfy[n] += G*M[j]*(rvy/sqrt(pow(rey, 3)) + 3*(rvy*ry)*ry/sqrt(pow(rey, 5)));
       jfz[n] += G*M[j]*(rvz/sqrt(pow(rez, 3)) + 3*(rvz*rz)*rz/sqrt(pow(rez, 5)));
 			   }
-   else			   {
-      afx[n] += 0;
-      afy[n] += 0;
-      afz[n] += 0;
-      jfx[n] += 0;
-      jfy[n] += 0;
-      jfz[n] += 0;
-	   		   }
    			   }
    			   }
 
@@ -858,7 +865,6 @@ double rez = 0;
        if ( ts < 1e-6 ) ts = 1e-7;
 			              }
                           }
-printf("x = %lf\n", x[0]);
 }
 void hermiteDKD( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G )
 {
@@ -938,33 +944,25 @@ double sp = 0.01;
 //now update a and jerk at t+hts
    for (int n=0; n<N; n++){
    for (int j=0; j<N; j++){
-   if  (n != j)           {
-      rx = x[j]-x[n];
-      ry = y[j]-y[n];
-      rz = z[j]-z[n];
+   if  (n != j)       {
+      rx = fabs(x[n]-x[j]);
+      ry = fabs(y[n]-y[j]);
+      rz = fabs(z[n]-z[j]);
       rex = pow(rx, 2)+pow(sp, 2);
       rey = pow(ry, 2)+pow(sp, 2);
       rez = pow(rz, 2)+pow(sp, 2);
       ahx[n] += G*M[j]*rx/sqrt(pow(rex, 3));
       ahy[n] += G*M[j]*ry/sqrt(pow(rey, 3));
       ahz[n] += G*M[j]*rz/sqrt(pow(rez, 3));
-      rvx = vx[j] - vx[n];
-      rvy = vy[j] - vy[n];
-      rvz = vz[j] - vz[n];
+      rvx = fabs(vx[n] - vx[j]);
+      rvy = fabs(vy[n] - vy[j]);
+      rvz = fabs(vz[n] - vz[j]);
       jhx[n] += G*M[j]*(rvx/sqrt(pow(rex, 3)) + 3*(rvx*rx)*rx/sqrt(pow(rex, 5)));
       jhy[n] += G*M[j]*(rvy/sqrt(pow(rey, 3)) + 3*(rvy*ry)*ry/sqrt(pow(rey, 5)));
       jhz[n] += G*M[j]*(rvz/sqrt(pow(rez, 3)) + 3*(rvz*rz)*rz/sqrt(pow(rez, 5)));
-		           }
-   else			   {
-      afx[n] += 0;
-      afy[n] += 0;
-      afz[n] += 0;
-      jfx[n] += 0;
-      jfy[n] += 0;
-      jfz[n] += 0;
-	   		   }
-		           }
-		           }
+		      }
+		      }
+		      }
 
 //kick and second drift
    for (int n=0; n<N; n++){
@@ -980,30 +978,22 @@ double sp = 0.01;
    for (int n=0; n<N; n++){
    for (int j=0; j<N; j++){
    if  (n != j)           {
-      rx = x[j]-x[n];
-      ry = y[j]-y[n];
-      rz = z[j]-z[n];
+      rx = fabs(x[n]-x[j]);
+      ry = fabs(y[n]-y[j]);
+      rz = fabs(z[n]-z[j]);
       rex = pow(rx, 2)+pow(sp, 2);
       rey = pow(ry, 2)+pow(sp, 2);
       rez = pow(rz, 2)+pow(sp, 2);
       afx[n] += G*M[j]*rx/sqrt(pow(rex, 3));
       afy[n] += G*M[j]*ry/sqrt(pow(rey, 3));
       afz[n] += G*M[j]*rz/sqrt(pow(rez, 3));
-      rvx = vx[j] - vx[n];
-      rvy = vy[j] - vy[n]);
-      rvz = vz[j] - vz[n]);
+      rvx = fabs(vx[n] - vx[j]);
+      rvy = fabs(vy[n] - vy[j]);
+      rvz = fabs(vz[n] - vz[j]);
       jfx[n] += G*M[j]*(rvx/sqrt(pow(rex, 3)) + 3*(rvx*rx)*rx/sqrt(pow(rex, 5)));
       jfy[n] += G*M[j]*(rvy/sqrt(pow(rey, 3)) + 3*(rvy*ry)*ry/sqrt(pow(rey, 5)));
       jfz[n] += G*M[j]*(rvz/sqrt(pow(rez, 3)) + 3*(rvz*rz)*rz/sqrt(pow(rez, 5)));
 			   }
-   else			   {
-      afx[n] += 0;
-      afy[n] += 0;
-      afz[n] += 0;
-      jfx[n] += 0;
-      jfy[n] += 0;
-      jfz[n] += 0;
-	   		   }
    			   }
    			   }
 
@@ -1130,33 +1120,25 @@ double sp = 0.01;
 //now update a and jerk at t+hts
    for (int n=0; n<N; n++){
    for (int j=0; j<N; j++){
-   if  (n != j)           {
-      rx = x[j]-x[n];
-      ry = y[j]-y[n];
-      rz = z[j]-z[n];
+   if  (n != j)       {
+      rx = fabs(x[n]-x[j]);
+      ry = fabs(y[n]-y[j]);
+      rz = fabs(z[n]-z[j]);
       rex = pow(rx, 2)+pow(sp, 2);
       rey = pow(ry, 2)+pow(sp, 2);
       rez = pow(rz, 2)+pow(sp, 2);
       ahx[n] += G*M[j]*rx/sqrt(pow(rex, 3));
       ahy[n] += G*M[j]*ry/sqrt(pow(rey, 3));
       ahz[n] += G*M[j]*rz/sqrt(pow(rez, 3));
-      rvx = vx[j] - vx[n];
-      rvy = vy[j] - vy[n];
-      rvz = vz[j] - vz[n];
+      rvx = fabs(vx[n] - vx[j]);
+      rvy = fabs(vy[n] - vy[j]);
+      rvz = fabs(vz[n] - vz[j]);
       jhx[n] += G*M[j]*(rvx/sqrt(pow(rex, 3)) + 3*(rvx*rx)*rx/sqrt(pow(rex, 5)));
       jhy[n] += G*M[j]*(rvy/sqrt(pow(rey, 3)) + 3*(rvy*ry)*ry/sqrt(pow(rey, 5)));
       jhz[n] += G*M[j]*(rvz/sqrt(pow(rez, 3)) + 3*(rvz*rz)*rz/sqrt(pow(rez, 5)));
-			   }
-   else			   {
-      afx[n] += 0;
-      afy[n] += 0;
-      afz[n] += 0;
-      jfx[n] += 0;
-      jfy[n] += 0;
-      jfz[n] += 0;
-	   		   }
-   			   }
-			   }
+			}
+   			}
+			}
 
 //drift and second kick
    for (int n=0; n<N; n++){
@@ -1172,30 +1154,22 @@ double sp = 0.01;
    for (int n=0; n<N; n++){
    for (int j=0; j<N; j++){
    if  (n != j)           {
-      rx = x[j]-x[n];
-      ry = y[j]-y[n];
-      rz = z[j]-z[n];
+      rx = fabs(x[n]-x[j]);
+      ry = fabs(y[n]-y[j]);
+      rz = fabs(z[n]-z[j]);
       rex = pow(rx, 2)+pow(sp, 2);
       rey = pow(ry, 2)+pow(sp, 2);
       rez = pow(rz, 2)+pow(sp, 2);
       afx[n] += G*M[j]*rx/sqrt(pow(rex, 3));
       afy[n] += G*M[j]*ry/sqrt(pow(rey, 3));
       afz[n] += G*M[j]*rz/sqrt(pow(rez, 3));
-      rvx = vx[j] - vx[n];
-      rvy = vy[j] - vy[n];
-      rvz = vz[j] - vz[n];
+      rvx = fabs(vx[n] - vx[j]);
+      rvy = fabs(vy[n] - vy[j]);
+      rvz = fabs(vz[n] - vz[j]);
       jfx[n] += G*M[j]*(rvx/sqrt(pow(rex, 3)) + 3*(rvx*rx)*rx/sqrt(pow(rex, 5)));
       jfy[n] += G*M[j]*(rvy/sqrt(pow(rey, 3)) + 3*(rvy*ry)*ry/sqrt(pow(rey, 5)));
       jfz[n] += G*M[j]*(rvz/sqrt(pow(rez, 3)) + 3*(rvz*rz)*rz/sqrt(pow(rez, 5)));
      			   }
-   else			   {
-      afx[n] += 0;
-      afy[n] += 0;
-      afz[n] += 0;
-      jfx[n] += 0;
-      jfy[n] += 0;
-      jfz[n] += 0;
-	   		   }
 			   }
       			   }
 
