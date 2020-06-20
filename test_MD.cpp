@@ -3,11 +3,18 @@
 #include <math.h>
 #include <time.h>
 #include <omp.h>
+#include <mpi.h>
 
 float ***buildGrid(int numRows, int numCols, int numLevels);
 void mass_deposition( int N, int Nthread,double *M, double *x, double *y, double *z, double gs, int GN, int mode, float ****M_grid);
 
 int main(void){
+    //mpi initialize
+    int NRank, MyRank;
+    MPI_Init( &argc, &argv );
+    MPI_Comm_rank( MPI_COMM_WORLD, &MyRank );
+    MPI_Comm_size( MPI_COMM_WORLD, &NRank );
+    
     double gs = 1.0;
     int GN = 5;
     int N = 2;
@@ -33,7 +40,23 @@ int main(void){
     float ***M_grid;
      
 
-    mass_deposition(N, Nthread, M, x, y, z, gs, GN, mode, &M_grid);
+    int sendcount = N/NRank;
+    int RecvCount = SendCount;
+    const int RootRank = 0;
+    float *SendBuf = new float [N]; // only relevant for the root rank
+    float *RecvBuf = new float [RecvCount];
+    
+    if(MyRank = RootRank){
+        for(int n=0; n<N; n++){
+            SendBuf [n] = M[n];
+        }
+    }
+    
+    MPI_Scatter( SendBuf, SendCount, MPI_INT,RecvBuf, RecvCount, MPI_FLOAT, RootRank, MPI_COMM_WORLD );
+    
+    mass_deposition(RecvCount, Nthread, RecvBuf, x, y, z, gs, GN, mode, &M_grid);
+    delete [] SendBuf;
+    delete [] RecvBuf;
     
     printf( "\nM_grid:\n" );
     for(int k = 0; k<GN; k++){
