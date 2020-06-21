@@ -13,10 +13,10 @@ int main( int argc, char *argv[] )
 
    MPI_Comm_size( MPI_COMM_WORLD, &NRank );
 
-// this test assumes only two ranks
+// this test assumes only three ranks
    if ( NRank != 3 )
    {
-      fprintf( stderr, "ERROR: NRank (%d) != 2\n", NRank );
+      fprintf( stderr, "ERROR: NRank (%d) != 3\n", NRank );
       MPI_Abort( MPI_COMM_WORLD, 1 );
    }
 
@@ -25,11 +25,11 @@ int main( int argc, char *argv[] )
 
    const int Tag = 123;
 
-   const int Count = 3*N;
+   const int Count = 1;
 
-   double *SendBuf = new double [Count];
+   double SendBuf;
 
-   double *RecvBuf = new double [Count];
+   double RecvBuf;
 
    double M[N], x[N], y[N], z[N];
 
@@ -173,20 +173,20 @@ double aa3[N];
       jx[n] = jfx[n];
       x[n] += ( pow(ts, 4)*a2x[n]/24 + pow(ts, 5)*a3x[n]/120 );
       vx[n] += ( pow(ts, 3)*a2x[n]/6 + pow(ts, 4)*a3x[n]/24 );
-      SendBuf[n] = jx[n];
-      SendBuf[N+n] = x[n];
-      SendBuf[2*N+n] = vx[n];
-      MPI_Send( &SendBuf, Count, MPI_DOUBLE, 1, Tag, MPI_COMM_WORLD );
-      MPI_Send( &SendBuf, Count, MPI_DOUBLE, 2, Tag, MPI_COMM_WORLD );
-      MPI_Recv( &RecvBuf, Count, MPI_DOUBLE, 1, Tag, MPI_COMM_WORLD, MPI_STATUSES_IGNORE );
-      jy[n] = RecvBuf[n];
-      y[n] = RecvBuf[N+n];
-      vy[n] = RecvBuf[2*N+n];
-      MPI_Recv( &RecvBuf, Count, MPI_DOUBLE, 2, Tag, MPI_COMM_WORLD, MPI_STATUSES_IGNORE );
-      jz[n] = RecvBuf[n];
-      z[n] = RecvBuf[N+n];
-      vz[n] = RecvBuf[2*N+n];
 			  }
+   for (int n=0; n<N; n++){
+      SendBuf = x[n];
+      MPI_Send( &SendBuf, 1, MPI_DOUBLE, 1, Tag, MPI_COMM_WORLD );
+      MPI_Recv( &RecvBuf, 1, MPI_DOUBLE, 1, Tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+      y[n] = RecvBuf;
+                          }
+   for (int n=0; n<N; n++){
+      SendBuf = x[n];
+      MPI_Send( &SendBuf, 1, MPI_DOUBLE, 2, Tag, MPI_COMM_WORLD );
+      MPI_Recv( &RecvBuf, 1, MPI_DOUBLE, 2, Tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+      z[n] = RecvBuf;
+                          }
+      MPI_Barrier(MPI_COMM_WORLD);
 		     }
 
 // y direction
@@ -224,20 +224,20 @@ double aa3[N];
       jy[n] = jfy[n];
       y[n] += ( pow(ts, 4)*a2y[n]/24 + pow(ts, 5)*a3y[n]/120 );
       vy[n] += ( pow(ts, 3)*a2y[n]/6 + pow(ts, 4)*a3y[n]/24 );
-      SendBuf[n] = jy[n];
-      SendBuf[N+n] = y[n];
-      SendBuf[2*N+n] = vy[n];
-      MPI_Send( &SendBuf, Count, MPI_DOUBLE, 0, Tag, MPI_COMM_WORLD );
-      MPI_Send( &SendBuf, Count, MPI_DOUBLE, 2, Tag, MPI_COMM_WORLD );
-      MPI_Recv( &RecvBuf, Count, MPI_DOUBLE, 0, Tag, MPI_COMM_WORLD, MPI_STATUSES_IGNORE );
-      jx[n] = RecvBuf[n];
-      x[n] = RecvBuf[N+n];
-      vx[n] = RecvBuf[2*N+n];
-      MPI_Recv( &RecvBuf, Count, MPI_DOUBLE, 2, Tag, MPI_COMM_WORLD, MPI_STATUSES_IGNORE );
-      jz[n] = RecvBuf[n];
-      z[n] = RecvBuf[N+n];
-      vz[n] = RecvBuf[2*N+n];
                           }
+   for (int n=0; n<N; n++){
+      MPI_Recv( &RecvBuf, 1, MPI_DOUBLE, 0, Tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+      x[n] = RecvBuf;
+      SendBuf = y[n];
+      MPI_Send( &SendBuf, 1, MPI_DOUBLE, 0, Tag, MPI_COMM_WORLD );
+                          }
+   for (int n=0; n<N; n++){
+      SendBuf = y[n];
+      MPI_Send( &SendBuf, 1, MPI_DOUBLE, 2, Tag, MPI_COMM_WORLD );
+      MPI_Recv( &RecvBuf, 1, MPI_DOUBLE, 2, Tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+      z[n] = RecvBuf;
+                          }
+      MPI_Barrier(MPI_COMM_WORLD);
                      }
 
 //z direction
@@ -275,20 +275,20 @@ double aa3[N];
       jz[n] = jfz[n];
       z[n] += ( pow(ts, 4)*a2z[n]/24 + pow(ts, 5)*a3z[n]/120 );
       vz[n] += ( pow(ts, 3)*a2z[n]/6 + pow(ts, 4)*a3z[n]/24 );
-      SendBuf[n] = jz[n];
-      SendBuf[N+n] = z[n];
-      SendBuf[2*N+n] = vz[n];
-      MPI_Send( &SendBuf, Count, MPI_DOUBLE, 0, Tag, MPI_COMM_WORLD );
-      MPI_Send( &SendBuf, Count, MPI_DOUBLE, 1, Tag, MPI_COMM_WORLD );
-      MPI_Recv( &RecvBuf, Count, MPI_DOUBLE, 0, Tag, MPI_COMM_WORLD, MPI_STATUSES_IGNORE );
-      jx[n] = RecvBuf[n];
-      x[n] = RecvBuf[N+n];
-      vx[n] = RecvBuf[2*N+n];
-      MPI_Recv( &RecvBuf, Count, MPI_DOUBLE, 1, Tag, MPI_COMM_WORLD, MPI_STATUSES_IGNORE );
-      jy[n] = RecvBuf[n];
-      y[n] = RecvBuf[N+n];
-      vy[n] = RecvBuf[2*N+n];
                           }
+   for (int n=0; n<N; n++){
+      MPI_Recv( &RecvBuf, 1, MPI_DOUBLE, 0, Tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+      x[n] = RecvBuf;
+      SendBuf = z[n];
+      MPI_Send( &SendBuf, 1, MPI_DOUBLE, 0, Tag, MPI_COMM_WORLD );
+                          }
+   for (int n=0; n<N; n++){
+      MPI_Recv( &RecvBuf, 1, MPI_DOUBLE, 1, Tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+      y[n] = RecvBuf;
+      SendBuf = z[n];
+      MPI_Send( &SendBuf, 1, MPI_DOUBLE, 1, Tag, MPI_COMM_WORLD );
+                          }
+      MPI_Barrier(MPI_COMM_WORLD);
                      }
    t += ts;
    printf("1:%lf, %lf, %lf\n", x[0], y[0], z[0]);
