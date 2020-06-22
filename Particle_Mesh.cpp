@@ -3,10 +3,12 @@
 #include <math.h>
 #include <fftw3.h>
 #include <time.h>
+#include <mpi.h>
+#include <omp.h>
 //include any package you need and omp or mpi
 
 float ***buildGrid(const int numRows, const int numCols, const int numLevels); //creat grid points
-void mass_deposition( const int N, double *M, double *x, double *y, double *z, const double gs, const int GN, const int mode, float ****M_grid);
+void mass_deposition( const int N, int Nthread,double *M, double *x, double *y, double *z, const double gs, const int GN, const int mode, float ****M_grid);
 void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode, double *a);
 void hermite( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
 void hermiteDKD( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
@@ -14,7 +16,7 @@ void hermiteKDK( const int N, double *M, double *x, double *y, double *z, double
 void Potential( double *rho, double *phi, double G, int BC, int GN, double gs  );
 void hermiteMPI( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
 
-mmm main(void){
+int main(void){
     // constants
     // add any necessary const. here
     const double gs = 1.0; // grid size (distance between every grid point)
@@ -27,6 +29,8 @@ mmm main(void){
     const double ts = 0.05; //time step size of each step
     const double G = 0.25/M_PI; //(m3 kg-1 s-2)
     const int BC = 0;         // choose boundary condition (0=isolated 1=period)
+    int c = 0;
+    const int Nthread = 4;
     // end constants
 	    
     
@@ -50,19 +54,28 @@ mmm main(void){
         jz[n] = 0;
     }
     // end IC
+    
+    //init space
+    float ***M_grid;
+    int rhoN = GN*GN*GN;
+    double rho[rhoN], phi_grid[GN+2][GN+2][GN+2];
+    int index;
+    int phiN = GN*GN*GN;
+    double phi[phiN];
+    float phi_dx[GN][GN][GN], phi_dy[GN][GN][GN], phi_dz[GN][GN][GN];
+    double ax[N], ay[N], az[N];
+    float ***a_grid = buildGrid(GN,GN,GN);
+    //end init space
+
     while(t <= t_end)
     {
         // mass deposition
         // Note that the output of this is 3 by 3 matrix which from M_grid[0][0][0] to M[GN-1][GN-1][GN-1]
-        float ***M_grid;
-        mass_deposition(N, M, x, y, z, gs, GN, mode_d, &M_grid);
+        mass_deposition(N, Nthread,M, x, y, z, gs, GN, mode_d, &M_grid);
         // end mass deposition
         
         // calculate potential here
 	//get rho in row-major form
-        int rhoN = GN*GN*GN;
-        double rho[rhoN], phi_grid[GN+2][GN+2][GN+2];
-        int index;
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
                 for(int k = 0; k<GN; k++){
@@ -71,8 +84,6 @@ mmm main(void){
                 }
             }
         }
-	int phiN = GN*GN*GN;
-	double phi[phiN];
 	for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
                 for(int k = 0; k<GN; k++){
@@ -106,7 +117,6 @@ mmm main(void){
         // end potential
         
         // Gradient of potential
-        float phi_dx[GN][GN][GN], phi_dy[GN][GN][GN], phi_dz[GN][GN][GN];
         //gradient inside
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
@@ -122,8 +132,6 @@ mmm main(void){
     
         // acceleration deposition here
         // I expect my output to be ax[N], ay[N], az[N]
-        double ax[N], ay[N], az[N];
-        float ***a_grid = buildGrid(GN,GN,GN);
         //assign a_grid for x here
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
@@ -152,9 +160,6 @@ mmm main(void){
             }
         }
         acceleration_deposition( N, a_grid, M_grid, M, x, y, z, gs, GN, mode_d, az);
-        for(int n;n<N;n++){
-            printf("a[%2d] = %5.5f %5.5f %5.5f\n", n, ax[n], ay[n], az[n]);
-        }
         // end acceleration deopsotion
         // Hermite Integral, DKD, KDK
         // Read the output of acceleration deposition and see if there should be any change.
@@ -166,24 +171,21 @@ mmm main(void){
         if(mode_h == 3) hermiteKDK( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G );
 	//MPI HI
 	if(mode_h == 4) hermiteMPI( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G );
-        for(int n;n<N;n++){
-            printf("a[%2d] = %5.5f %5.5f %5.5f\n", n, ax[n], ay[n], az[n]);
-        }
         // end HI, DKD, KDK
         // Dump data
-        /*
+        
         FILE *file = fopen("Particle_position.txt","a");
-        fprintf(file," t = %5.5f \n", t);
         for(int n = 0; n < N; n++)
         {
             fprintf(file, "%5.5f \t %5.5f \t %5.5f \n", x[n], y[n], z[n]);
         }
-        fclose(flie);
-*/
+        fclose(file);
+
         // end dump data
-        for(int n = 0; n<N; n++){
-        printf("%5.5f \t %5.5f \t %5.5f \n", x[n], y[n], z[n]); 
-       }
+        //for(int n = 0; n<N; n++){
+        //printf("%5.5f \t %5.5f \t %5.5f \n", x[n], y[n], z[n]);
+       //}
+        c += 1;
         t += ts;
     }
     return 0;
@@ -213,7 +215,7 @@ float ***buildGrid(const int numRows, const int numCols, const int numLevels)
     return levels;
 }
 
-void mass_deposition(int N, double *M, double *x, double *y, double *z, double gs, int GN, int mode, float ****M_grid)
+void mass_deposition(int N, int Nthread,double *M, double *x, double *y, double *z, double gs, int GN, int mode, float ****M_grid)
 {
 /*
  mode 1: NGP
