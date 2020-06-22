@@ -12,9 +12,9 @@ void hermite( const int N, double *M, double *x, double *y, double *z, double *v
 void hermiteDKD( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
 void hermiteKDK( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
 void Potential( double *rho, double *phi, double G, int BC, int GN, double gs  );
+void hermiteMPI( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
 
-
-int main(void){
+mmm main(void){
     // constants
     // add any necessary const. here
     const double gs = 1.0; // grid size (distance between every grid point)
@@ -23,11 +23,10 @@ int main(void){
     double M[N], x[N], y[N], z[N];
     const int mode_d = 1; // choose the mode for deposition
     const int mode_h = 1; // choose the mode for hermite
-    const double t_end =10*0.05; // end time
+    const double t_end = 0.05; // end time
     const double ts = 0.05; //time step size of each step
     const double G = 0.25/M_PI; //(m3 kg-1 s-2)
     const int BC = 0;         // choose boundary condition (0=isolated 1=period)
-    int c = 0 ;
     // end constants
 	    
     
@@ -40,9 +39,9 @@ int main(void){
     srand( time(NULL) );// set random seed for creating random number
     for(int n = 0; n<N; n++){
         M[n] = 100.0;//*(double)rand()/RAND_MAX;// 10 is maxium mass
-        x[n] = 3.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
-        y[n] = 3.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
-        z[n] = 3.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
+        x[n] = 1.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
+        y[n] = 1.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
+        z[n] = 1.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
         vx[n] =0.0;// (double)rand()/RAND_MAX*(GN-1);
         vy[n] =0.0;// (double)rand()/RAND_MAX*(GN-1);
         vz[n] =0.0;// (double)rand()/RAND_MAX*(GN-1);
@@ -160,27 +159,31 @@ int main(void){
         // Hermite Integral, DKD, KDK
         // Read the output of acceleration deposition and see if there should be any change.
         //HI
-        if(mode_h == 1) hermite( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G  );
+        if(mode_h == 1) hermite( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G );
         //DKD Hermite
         if(mode_h == 2) hermiteDKD( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G );
         //KDK Hermite
         if(mode_h == 3) hermiteKDK( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G );
+	//MPI HI
+	if(mode_h == 4) hermiteMPI( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G );
         for(int n;n<N;n++){
             printf("a[%2d] = %5.5f %5.5f %5.5f\n", n, ax[n], ay[n], az[n]);
         }
         // end HI, DKD, KDK
         // Dump data
-        //if(c%20 == 0){ 
+        /*
         FILE *file = fopen("Particle_position.txt","a");
-        //fprintf(file," t = %5.5f \n", t);
+        fprintf(file," t = %5.5f \n", t);
         for(int n = 0; n < N; n++)
         {
             fprintf(file, "%5.5f \t %5.5f \t %5.5f \n", x[n], y[n], z[n]);
         }
-        fclose(file);
-        //}
-        c += 1;
+        fclose(flie);
+*/
         // end dump data
+        for(int n = 0; n<N; n++){
+        printf("%5.5f \t %5.5f \t %5.5f \n", x[n], y[n], z[n]); 
+       }
         t += ts;
     }
     return 0;
@@ -802,18 +805,24 @@ double rez = 0;
       rx = x[j]-x[n];
       ry = y[j]-y[n];
       rz = z[j]-z[n];
-      rex = pow(rx, 2)+pow(sp, 2);
-      rey = pow(ry, 2)+pow(sp, 2);
-      rez = pow(rz, 2)+pow(sp, 2);
-      afx[n] += G*M[j]*rx/sqrt(pow(rex, 3));
-      afy[n] += G*M[j]*ry/sqrt(pow(rey, 3));
-      afz[n] += G*M[j]*rz/sqrt(pow(rez, 3));
+//      rex = pow(rx, 2)+pow(sp, 2);
+//      rey = pow(ry, 2)+pow(sp, 2);
+//      rez = pow(rz, 2)+pow(sp, 2);
+      if (fabs(rx)>sp) afx[n] += G*M[j]*rx/fabs(pow(rx, 3));
+	else afx[n] += 0;
+      if (fabs(ry)>sp) afy[n] += G*M[j]*ry/fabs(pow(ry, 3));
+	else afy[n] += 0;
+      if (fabs(rz)>sp) afz[n] += G*M[j]*rz/fabs(pow(rz, 3));
+	else afz[n] += 0;
       rvx = vx[j] - vx[n];
       rvy = vy[j] - vy[n];
       rvz = vz[j] - vz[n];
-      jfx[n] += G*M[j]*(rvx/sqrt(pow(rex, 3)) + 3*(rvx*rx)*rx/sqrt(pow(rex, 5)));
-      jfy[n] += G*M[j]*(rvy/sqrt(pow(rey, 3)) + 3*(rvy*ry)*ry/sqrt(pow(rey, 5)));
-      jfz[n] += G*M[j]*(rvz/sqrt(pow(rez, 3)) + 3*(rvz*rz)*rz/sqrt(pow(rez, 5)));
+      if (fabs(rx)>sp) jfx[n] += G*M[j]*(rvx/fabs(pow(rx, 3)) + 3*(rvx*rx)*rx/fabs(pow(rx, 5)));
+	else jfx[n] += 0;
+      if (fabs(ry)>sp) jfy[n] += G*M[j]*(rvy/fabs(pow(ry, 3)) + 3*(rvy*ry)*ry/fabs(pow(ry, 5)));
+	else jfy[n] += 0;
+      if (fabs(rz)>sp) jfz[n] += G*M[j]*(rvz/fabs(pow(rz, 3)) + 3*(rvz*rz)*rz/fabs(pow(rz, 5)));
+	else jfz[n] += 0;
 			   }
    else                    {
       afx[n] += 0;
@@ -1254,4 +1263,265 @@ double sp = 0.01;
 			  }
                           }
 */
-}		  
+}
+
+void hermiteMPI( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G )
+{
+//parameters needed
+float dt[N];  //timestep based on all particles' properties respectively.
+double rvx;
+double rvy;
+double rvz;
+double afx[N];//f stand for final, the predicted acceleration at time t+ts
+double afy[N];
+double afz[N];
+double jfx[N];//j stand for jerk
+double jfy[N];
+double jfz[N];
+double a2x[N]; //second order derivative of acceleration
+double a2y[N];
+double a2z[N];
+double a3x[N]; //third order derivative of acceleration
+double a3y[N];
+double a3z[N];
+double af2x[N];   //second derivative of acceleration at t + dt
+double af2y[N];
+double af2z[N];
+double aaf[N];   //first a of all below stands for absolute value
+double aaf2[N];
+double ajf[N];
+double aa3[N];
+
+//parameter initialization
+   for (int i=0; i<N; i++){ //initialize value to zero
+      aaf[i] = 0;
+      aaf2[i] = 0;
+      ajf[i] = 0;
+      aa3[i] = 0;
+      afx[i] = 0;
+      afy[i] = 0;
+      afz[i] = 0;
+      jfx[i] = 0;
+      jfy[i] = 0;
+      jfz[i] = 0;
+      a2x[i] = 0;
+      a2y[i] = 0;
+      a2z[i] = 0;
+      a3x[i] = 0;
+      a3y[i] = 0;
+      a3z[i] = 0;
+      af2x[i] = 0;
+      af2y[i] = 0;
+      af2z[i] = 0;
+                          }
+
+//x direction
+   if ( MyRank == 0 ){
+   for (int n=0; n<N; n++){//first position, velocity update (drift and kick)
+      x[n] += ( ts*vx[n] + pow(ts, 2)*ax[n]/2 + pow(ts, 3)*jx[n]/6 );
+      vx[n] += ( ts*ax[n] + pow(ts, 2)*jx[n]/2 );
+                          }
+
+//predict acceleration and its derivative at time t + ts
+   for (int n=0; n<N; n++){
+   for (int j=0; j<N; j++){
+   if  (n != j)           {
+      rx = x[j]-x[n];
+      rex = pow(rx, 2)+pow(sp, 2);
+      afx[n] += G*M[j]*rx/sqrt(pow(rex, 3));
+      rvx = vx[j] - vx[n];
+      jfx[n] += G*M[j]*(rvx/sqrt(pow(rex, 3)) + 3*(rvx*rx)*rx/sqrt(pow(rex, 5)));
+                          }
+   else                   {
+      afx[n] += 0;
+      jfx[n] += 0;
+                          }
+                          }
+                          }
+
+//high order correction
+   for (int n=0; n<N; n++){
+      a2x[n] = ( 6*(afx[n] - ax[n]) - ts*(4*jx[n] + 2*jfx[n]) )/(pow(ts, 2)+1e-7);
+      a3x[n] = ( 12*(ax[n] - afx[n]) - 6*ts*(jx[n] + jfx[n]) )/(pow(ts, 3)+1e-7);
+                          }
+
+//final position, velocity and new jerk
+   for (int n=0; n<N; n++){
+      jx[n] = jfx[n];
+      x[n] += ( pow(ts, 4)*a2x[n]/24 + pow(ts, 5)*a3x[n]/120 );
+      vx[n] += ( pow(ts, 3)*a2x[n]/6 + pow(ts, 4)*a3x[n]/24 );
+                          }
+//update to other ranks
+   for (int n=0; n<N; n++){
+      SendBuf = x[n];
+      MPI_Send( &SendBuf, 1, MPI_DOUBLE, 1, Tag, MPI_COMM_WORLD );
+      MPI_Recv( &RecvBuf, 1, MPI_DOUBLE, 1, Tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+      y[n] = RecvBuf;
+                          }
+   for (int n=0; n<N; n++){
+      SendBuf = x[n];
+      MPI_Send( &SendBuf, 1, MPI_DOUBLE, 2, Tag, MPI_COMM_WORLD );
+      MPI_Recv( &RecvBuf, 1, MPI_DOUBLE, 2, Tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+      z[n] = RecvBuf;
+                          }
+		     }
+
+// y direction
+   if ( MyRank == 1 ){
+   for (int n=0; n<N; n++){//first position, velocity update (drift and kick)
+      y[n] += ( ts*vy[n] + pow(ts, 2)*ay[n]/2 + pow(ts, 3)*jy[n]/6 );
+      vy[n] += ( ts*ay[n] + pow(ts, 2)*jy[n]/2 );
+                          }
+
+//predict acceleration and its derivative at time t + ts
+   for (int n=0; n<N; n++){
+   for (int j=0; j<N; j++){
+   if  (n != j)           {
+      ry = y[j]-y[n];
+      rey = pow(rx, 2)+pow(sp, 2);
+      afy[n] += G*M[j]*ry/sqrt(pow(rey, 3));
+      rvy = vy[j] - vy[n];
+      jfy[n] += G*M[j]*(rvy/sqrt(pow(rey, 3)) + 3*(rvy*ry)*ry/sqrt(pow(rey, 5)));
+                          }
+   else                   {
+      afy[n] += 0;
+      jfy[n] += 0;
+                          }
+                          }
+                          }
+
+//high order correction
+   for (int n=0; n<N; n++){
+      a2y[n] = ( 6*(afy[n] - ay[n]) - ts*(4*jy[n] + 2*jfy[n]) )/(pow(ts, 2)+1e-7);
+      a3y[n] = ( 12*(ay[n] - afy[n]) - 6*ts*(jy[n] + jfy[n]) )/(pow(ts, 3)+1e-7);
+                          }
+
+//final position, velocity and new jerk
+   for (int n=0; n<N; n++){
+      jy[n] = jfy[n];
+      y[n] += ( pow(ts, 4)*a2y[n]/24 + pow(ts, 5)*a3y[n]/120 );
+      vy[n] += ( pow(ts, 3)*a2y[n]/6 + pow(ts, 4)*a3y[n]/24 );
+                          }
+//update to other ranks
+   for (int n=0; n<N; n++){
+      MPI_Recv( &RecvBuf, 1, MPI_DOUBLE, 0, Tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+      x[n] = RecvBuf;
+      SendBuf = y[n];
+      MPI_Send( &SendBuf, 1, MPI_DOUBLE, 0, Tag, MPI_COMM_WORLD );
+                          }
+   for (int n=0; n<N; n++){
+      SendBuf = y[n];
+      MPI_Send( &SendBuf, 1, MPI_DOUBLE, 2, Tag, MPI_COMM_WORLD );
+      MPI_Recv( &RecvBuf, 1, MPI_DOUBLE, 2, Tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+      z[n] = RecvBuf;
+                          }
+                     }
+
+//z direction
+   if ( MyRank == 2 ){
+   for (int n=0; n<N; n++){//first position, velocity update (drift and kick)
+      z[n] += ( ts*vz[n] + pow(ts, 2)*az[n]/2 + pow(ts, 3)*jz[n]/6 );
+      vz[n] += ( ts*az[n] + pow(ts, 2)*jz[n]/2 );
+                          }
+
+//predict acceleration and its derivative at time t + ts
+   for (int n=0; n<N; n++){
+   for (int j=0; j<N; j++){
+   if  (n != j)           {
+      rz = z[j]-z[n];
+      rez = pow(rz, 2)+pow(sp, 2);
+      afz[n] += G*M[j]*rz/sqrt(pow(rez, 3));
+      rvz = vz[j] - vz[n];
+      jfz[n] += G*M[j]*(rvz/sqrt(pow(rez, 3)) + 3*(rvz*rz)*rz/sqrt(pow(rez, 5)));
+                          }
+   else                   {
+      afz[n] += 0;
+      jfz[n] += 0;
+                          }
+                          }
+                          }
+
+//high order correction
+   for (int n=0; n<N; n++){
+      a2z[n] = ( 6*(afz[n] - az[n]) - ts*(4*jz[n] + 2*jfz[n]) )/(pow(ts, 2)+1e-7);
+      a3z[n] = ( 12*(az[n] - afz[n]) - 6*ts*(jz[n] + jfz[n]) )/(pow(ts, 3)+1e-7);
+                          }
+
+//final position, velocity and new jerk
+   for (int n=0; n<N; n++){
+      jz[n] = jfz[n];
+      z[n] += ( pow(ts, 4)*a2z[n]/24 + pow(ts, 5)*a3z[n]/120 );
+      vz[n] += ( pow(ts, 3)*a2z[n]/6 + pow(ts, 4)*a3z[n]/24 );
+                          }
+//update to other ranks
+   for (int n=0; n<N; n++){
+      MPI_Recv( &RecvBuf, 1, MPI_DOUBLE, 0, Tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+      x[n] = RecvBuf;
+      SendBuf = z[n];
+      MPI_Send( &SendBuf, 1, MPI_DOUBLE, 0, Tag, MPI_COMM_WORLD );
+                          }
+   for (int n=0; n<N; n++){
+      MPI_Recv( &RecvBuf, 1, MPI_DOUBLE, 1, Tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+      y[n] = RecvBuf;
+      SendBuf = z[n];
+      MPI_Send( &SendBuf, 1, MPI_DOUBLE, 1, Tag, MPI_COMM_WORLD );
+                          }
+                     }
+   MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void herMPIDKD( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G )
+{
+//parameters needed
+float dt[N];         //timestep based on all particles' properties respectively.
+double rvx;
+double rvy;
+double rvz;
+double afx[N];//f stand for final, the predicted acceleration at time t+ts
+double afy[N];
+double afz[N];
+double jfx[N];//j stand for jerk
+double jfy[N];
+double jfz[N];
+double a2x[N]; //second order derivative of acceleration
+double a2y[N];
+double a2z[N];
+double a3x[N]; //third order derivative of acceleration
+double a3y[N];
+double a3z[N];
+double af2x[N];   //second derivative of acceleration at t + dt
+double af2y[N];
+double af2z[N];
+double aaf[N];   //first a of all below stands for absolute value
+double aaf2[N];
+double ajf[N];
+double aa3[N];
+
+//parameter initialization
+   for (int i=0; i<N; i++){ //initialize value to zero
+      aaf[i] = 0;
+      aaf2[i] = 0;
+      ajf[i] = 0;
+      aa3[i] = 0;
+      afx[i] = 0;
+      afy[i] = 0;
+      afz[i] = 0;
+      jfx[i] = 0;
+      jfy[i] = 0;
+      jfz[i] = 0;
+      a2x[i] = 0;
+      a2y[i] = 0;
+      a2z[i] = 0;
+      a3x[i] = 0;
+      a3y[i] = 0;
+      a3z[i] = 0;
+      af2x[i] = 0;
+      af2y[i] = 0;
+      af2z[i] = 0;
+                          }
+
+//x direction
+if ( MyRank == 0 ){
+//first drift of 0.5ts
+
+}
