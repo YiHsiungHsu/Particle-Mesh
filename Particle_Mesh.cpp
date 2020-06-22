@@ -23,10 +23,11 @@ int main(void){
     double M[N], x[N], y[N], z[N];
     const int mode_d = 1; // choose the mode for deposition
     const int mode_h = 1; // choose the mode for hermite
-    const double t_end = 0.05; // end time
+    const double t_end =10*0.05; // end time
     const double ts = 0.05; //time step size of each step
     const double G = 0.25/M_PI; //(m3 kg-1 s-2)
     const int BC = 0;         // choose boundary condition (0=isolated 1=period)
+    int c = 0 ;
     // end constants
 	    
     
@@ -39,9 +40,9 @@ int main(void){
     srand( time(NULL) );// set random seed for creating random number
     for(int n = 0; n<N; n++){
         M[n] = 100.0;//*(double)rand()/RAND_MAX;// 10 is maxium mass
-        x[n] = 1.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
-        y[n] = 1.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
-        z[n] = 1.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
+        x[n] = 3.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
+        y[n] = 3.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
+        z[n] = 3.0 + (double) n;//(double)rand()/RAND_MAX*(GN-1);
         vx[n] =0.0;// (double)rand()/RAND_MAX*(GN-1);
         vy[n] =0.0;// (double)rand()/RAND_MAX*(GN-1);
         vz[n] =0.0;// (double)rand()/RAND_MAX*(GN-1);
@@ -169,15 +170,16 @@ int main(void){
         }
         // end HI, DKD, KDK
         // Dump data
-        
+        //if(c%20 == 0){ 
         FILE *file = fopen("Particle_position.txt","a");
         //fprintf(file," t = %5.5f \n", t);
         for(int n = 0; n < N; n++)
         {
             fprintf(file, "%5.5f \t %5.5f \t %5.5f \n", x[n], y[n], z[n]);
         }
-        fclose(flie);
-
+        fclose(file);
+        //}
+        c += 1;
         // end dump data
         t += ts;
     }
