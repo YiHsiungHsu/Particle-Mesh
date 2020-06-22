@@ -228,6 +228,9 @@ void mass_deposition(int N, double *M, double *x, double *y, double *z, double g
     
     *M_grid = buildGrid(GN,GN,GN);
     // initialize M_grid
+    # pragma omp parallel num_threads( Nthread )
+    {
+        # pragma omp parallel for collapse( 3 )
     for(int i = 0; i<GN; i++){
         for(int j = 0; j<GN; j++){
             for(int k = 0; k<GN; k++){
@@ -265,7 +268,6 @@ void mass_deposition(int N, double *M, double *x, double *y, double *z, double g
                         else wz = 0.0;
                         
                         m[n][i][j][k] = wx*wy*wz*M[n];
-                        (*M_grid)[i][j][k] += (float)m[n][i][j][k];
                         
                     }
                 }
@@ -301,7 +303,6 @@ void mass_deposition(int N, double *M, double *x, double *y, double *z, double g
                         else wz = 0.0;
                         
                         m[n][i][j][k] = wx*wy*wz*M[n];
-                        (*M_grid)[i][j][k] += (float)m[n][i][j][k];
                         
                     }
                 }
@@ -356,6 +357,16 @@ void mass_deposition(int N, double *M, double *x, double *y, double *z, double g
                         
                         m[n][i][j][k] = wx*wy*wz*M[n];
 
+                    }
+                }
+            }
+        }
+    }
+        # pragma omp parallel for collapse( 4 )
+        for(int n = 0; n<N; n++){
+            for(int i = 0; i<GN; i++){
+                for(int j = 0; j<GN; j++){
+                    for(int k = 0; k<GN; k++){
                         (*M_grid)[i][j][k] += (float)m[n][i][j][k];
                     }
                 }

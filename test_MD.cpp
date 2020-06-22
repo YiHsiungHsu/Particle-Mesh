@@ -59,11 +59,12 @@ int main(int argc, char *argv[] ){
             SendBufy [n] = y[n];
             SendBufz [n] = z[n];
         }
-    }
+    
     MPI_Scatter( SendBufm, SendCount, MPI_DOUBLE,RecvBufm, RecvCount, MPI_DOUBLE, RootRank, MPI_COMM_WORLD );
     MPI_Scatter( SendBufx, SendCount, MPI_DOUBLE,RecvBufx, RecvCount, MPI_DOUBLE, RootRank, MPI_COMM_WORLD );
     MPI_Scatter( SendBufy, SendCount, MPI_DOUBLE,RecvBufy, RecvCount, MPI_DOUBLE, RootRank, MPI_COMM_WORLD );
     MPI_Scatter( SendBufz, SendCount, MPI_DOUBLE,RecvBufz, RecvCount, MPI_DOUBLE, RootRank, MPI_COMM_WORLD );
+    }
     
     mass_deposition(RecvCount, Nthread, RecvBufm, RecvBufx, RecvBufy, RecvBufz, gs, GN, mode, &M_grid);
     int Count = GN*GN*GN;
@@ -91,27 +92,29 @@ int main(int argc, char *argv[] ){
         }
     }
     MPI_Bcast( Buf, Count, MPI_DOUBLE, RootRank, MPI_COMM_WORLD );
+    
     for(int i = 0; i<GN; i++){
         for(int j = 0; j<GN; j++){
             for(int k = 0; k<GN; k++){
                 index = (k)+GN*((j)+GN*(i));
-                M_grid[i][j][k] = (float)Buf[index];
+                M_grid[i][j][k] = (float)Buf[index]; //modify here in main function
+            }
+        }
+    }
+    if(MyRank == RootRank){
+        printf( "\nphi_grid:\n" );
+        for(int k = 0; k<GN; k++){
+            printf( "k = %2d \n", k );
+            for(int i = 0; i<GN; i++){
+                for(int j = 0; j<GN; j++){
+                    printf( "  %5.3f", M_grid[i][j][k] );
+                }
+                printf( "\n" );
             }
         }
     }
     
     MPI_Finalize();
-    
-    printf( "\nphi_grid:\n" );
-    for(int k = 0; k<GN; k++){
-        printf( "k = %2d \n", k );
-        for(int i = 0; i<GN; i++){
-            for(int j = 0; j<GN; j++){
-                printf( "  %5.3f", M_grid[i][j][k] );
-            }
-            printf( "\n" );
-        }
-    }
     
     return EXIT_SUCCESS;
 }
