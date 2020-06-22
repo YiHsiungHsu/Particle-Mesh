@@ -393,16 +393,12 @@ void acceleration_deposition( int N, int Nthread,float ***a_grid, float ***M_gri
  a_grid is the input acceleration matrix.
  a is output acceleration of one component for every particle. (a zero matrix pointer)
 */
-    # pragma omp parallel num_threads( Nthread )
-       {
-    # pragma omp parallel for
     for(int n = 0; n<N; n++){
         a[n] = 0.0;
     }
     float m[N][GN][GN][GN]; //allocated mass for every single particle with m[particle][gridx][gridy][gridz]
     double dx, dy, dz;
     double wx, wy, wz; //weighted function
-    # pragma omp parallel for collapse( 4 )
     for(int n = 0; n<N; n++){
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
@@ -412,7 +408,6 @@ void acceleration_deposition( int N, int Nthread,float ***a_grid, float ***M_gri
             }
         }
     }
-       }
     if(mode == 1)
         {
             for(int n = 0; n<N; n++)
