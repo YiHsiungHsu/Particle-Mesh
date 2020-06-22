@@ -9,7 +9,7 @@
 
 float ***buildGrid(const int numRows, const int numCols, const int numLevels); //creat grid points
 void mass_deposition( const int N, int Nthread,double *M, double *x, double *y, double *z, const double gs, const int GN, const int mode, float ****M_grid);
-void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode, double *a);
+void acceleration_deposition( int N, int Nthread, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode, double *a);
 void hermite( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
 void hermiteDKD( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
 void hermiteKDK( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
@@ -141,7 +141,7 @@ int main(void){
             }
         }
 
-        acceleration_deposition( N, a_grid, M_grid, M, x, y, z, gs, GN, mode_d, ax);
+        acceleration_deposition( N, Nthread,,a_grid, M_grid, M, x, y, z, gs, GN, mode_d, ax);
         //assign a_grid for y here
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
@@ -150,7 +150,7 @@ int main(void){
                 }
             }
         }
-        acceleration_deposition( N, a_grid, M_grid, M, x, y, z, gs, GN, mode_d, ay);
+        acceleration_deposition( N, Nthread, a_grid, M_grid, M, x, y, z, gs, GN, mode_d, ay);
         //assign a_grid for z here
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
@@ -159,7 +159,7 @@ int main(void){
                 }
             }
         }
-        acceleration_deposition( N, a_grid, M_grid, M, x, y, z, gs, GN, mode_d, az);
+        acceleration_deposition( N, Nthread, a_grid, M_grid, M, x, y, z, gs, GN, mode_d, az);
         // end acceleration deopsotion
         // Hermite Integral, DKD, KDK
         // Read the output of acceleration deposition and see if there should be any change.
@@ -380,7 +380,7 @@ void mass_deposition(int N, int Nthread,double *M, double *x, double *y, double 
     }
 }
 
-void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode, double *a)
+void acceleration_deposition( int N, int Nthread,float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode, double *a)
 {
 /*
  mode 1: NGP
@@ -392,12 +392,16 @@ void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M
  a_grid is the input acceleration matrix.
  a is output acceleration of one component for every particle. (a zero matrix pointer)
 */
+    # pragma omp parallel num_threads( Nthread )
+       {
+    # pragma omp parallel for
     for(int n = 0; n<N; n++){
         a[n] = 0.0;
     }
     float m[N][GN][GN][GN]; //allocated mass for every single particle with m[particle][gridx][gridy][gridz]
     double dx, dy, dz;
     double wx, wy, wz; //weighted function
+    # pragma omp parallel for collapse( 4 )
     for(int n = 0; n<N; n++){
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
@@ -540,6 +544,7 @@ void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M
                 }
             }
         }
+       }
 }
 //---------------------------------------------------------------------------------------------
 ////Function    :  potential  
