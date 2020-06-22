@@ -76,6 +76,10 @@ int main( int argc, char *argv[] ){
     float phi_dx[GN][GN][GN], phi_dy[GN][GN][GN], phi_dz[GN][GN][GN];
     double ax[N], ay[N], az[N];
     float ***a_grid = buildGrid(GN,GN,GN);
+    double Mx = 0.0;
+    double My = 0.0;
+    double Mz = 0.0;
+    FILE *file;
     //end set space
     
     while(t <= t_end)
@@ -186,19 +190,31 @@ int main( int argc, char *argv[] ){
 	//MPI DKD HI
         if(mode_h == 5) herMPIDKD( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G );
         // end HI, DKD, KDK
+        
+        //Momentum
+        for(int n = 0; n<N; n++)
+        {
+            Mx += M[n] * vx[n];
+            My += M[n] * vy[n];
+            My += M[n] * vz[n];
+        }
+        //end Momentum
+        
         // Dump data
         
-        FILE *file = fopen("Particle_position.txt","a");
+        file = fopen("Particle_position.txt","ab");
         for(int n = 0; n < N; n++)
         {
             fprintf(file, "%5.5f \t %5.5f \t %5.5f \n", x[n], y[n], z[n]);
         }
         fclose(file);
+        
+        file = fopen("Momentum.txt","ab");
+        fprintf(file, "%5.5f \t %5.5f \t %5.5f \n", Mx, My, Mz);
+        fclose(file);
+        
 
         // end dump data
-        //for(int n = 0; n<N; n++){
-        //printf("%5.5f \t %5.5f \t %5.5f \n", x[n], y[n], z[n]);
-       //}
         c += 1;
         t += ts;
     }
