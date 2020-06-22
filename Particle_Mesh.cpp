@@ -4,13 +4,12 @@
 #include <fftw3.h>
 #include <time.h>
 #include <mpi.h>
-#include <omp.h>
 
 //include any package you need and omp or mpi
 
 float ***buildGrid(const int numRows, const int numCols, const int numLevels); //creat grid points
-void mass_deposition( const int N, int Nthread,double *M, double *x, double *y, double *z, const double gs, const int GN, const int mode, float ****M_grid);
-void acceleration_deposition( int N, int Nthread,float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode, double *a);
+void mass_deposition( const int N, double *M, double *x, double *y, double *z, const double gs, const int GN, const int mode, float ****M_grid);
+void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode, double *a);
 void hermite( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
 void hermiteDKD( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
 void hermiteKDK( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
@@ -18,7 +17,16 @@ void Potential( double *rho, double *phi, double G, int BC, int GN, double gs  )
 void hermiteMPI( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
 void herMPIDKD( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
 
-int main(void){
+int main( int argc, char *argv[] ){
+
+   int NRank, MyRank;
+
+   MPI_Init( &argc, &argv );
+
+   MPI_Comm_rank( MPI_COMM_WORLD, &MyRank );
+
+   MPI_Comm_size( MPI_COMM_WORLD, &NRank );
+
     // constants
     // add any necessary const. here
     const double gs = 1.0; // grid size (distance between every grid point)
@@ -31,8 +39,6 @@ int main(void){
     const double ts = 0.01; //time step size of each step
     const double G = 0.25/M_PI; //(m3 kg-1 s-2)
     const int BC = 0;         // choose boundary condition (0=isolated 1=period)
-    int c = 0;
-    const int Nthread = 4;
     // end constants
 	    
     
@@ -56,28 +62,19 @@ int main(void){
         jz[n] = 0;
     }
     // end IC
-    
-    //init space
-    float ***M_grid;
-    int rhoN = GN*GN*GN;
-    double rho[rhoN], phi_grid[GN+2][GN+2][GN+2];
-    int index;
-    int phiN = GN*GN*GN;
-    double phi[phiN];
-    float phi_dx[GN][GN][GN], phi_dy[GN][GN][GN], phi_dz[GN][GN][GN];
-    double ax[N], ay[N], az[N];
-    float ***a_grid = buildGrid(GN,GN,GN);
-    //end init space
-    
     while(t <= t_end)
     {
         // mass deposition
         // Note that the output of this is 3 by 3 matrix which from M_grid[0][0][0] to M[GN-1][GN-1][GN-1]
-        mass_deposition(N,Nthread, M, x, y, z, gs, GN, mode_d, &M_grid);
+        float ***M_grid;
+        mass_deposition(N, M, x, y, z, gs, GN, mode_d, &M_grid);
         // end mass deposition
         
         // calculate potential here
 	//get rho in row-major form
+        int rhoN = GN*GN*GN;
+        double rho[rhoN], phi_grid[GN+2][GN+2][GN+2];
+        int index;
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
                 for(int k = 0; k<GN; k++){
@@ -86,6 +83,8 @@ int main(void){
                 }
             }
         }
+	int phiN = GN*GN*GN;
+	double phi[phiN];
 	for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
                 for(int k = 0; k<GN; k++){
@@ -119,6 +118,7 @@ int main(void){
         // end potential
         
         // Gradient of potential
+        float phi_dx[GN][GN][GN], phi_dy[GN][GN][GN], phi_dz[GN][GN][GN];
         //gradient inside
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
@@ -134,6 +134,8 @@ int main(void){
     
         // acceleration deposition here
         // I expect my output to be ax[N], ay[N], az[N]
+        double ax[N], ay[N], az[N];
+        float ***a_grid = buildGrid(GN,GN,GN);
         //assign a_grid for x here
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
@@ -143,7 +145,7 @@ int main(void){
             }
         }
 
-        acceleration_deposition( N,Nthread, a_grid, M_grid, M, x, y, z, gs, GN, mode_d, ax);
+        acceleration_deposition( N, a_grid, M_grid, M, x, y, z, gs, GN, mode_d, ax);
         //assign a_grid for y here
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
@@ -152,7 +154,7 @@ int main(void){
                 }
             }
         }
-        acceleration_deposition( N, Nthread,a_grid, M_grid, M, x, y, z, gs, GN, mode_d, ay);
+        acceleration_deposition( N, a_grid, M_grid, M, x, y, z, gs, GN, mode_d, ay);
         //assign a_grid for z here
         for(int i = 0; i<GN; i++){
             for(int j = 0; j<GN; j++){
@@ -161,7 +163,10 @@ int main(void){
                 }
             }
         }
-        acceleration_deposition( N, Nthread,a_grid, M_grid, M, x, y, z, gs, GN, mode_d, az);
+        acceleration_deposition( N, a_grid, M_grid, M, x, y, z, gs, GN, mode_d, az);
+        for(int n;n<N;n++){
+            printf("a[%2d] = %5.5f %5.5f %5.5f\n", n, ax[n], ay[n], az[n]);
+        }
         // end acceleration deopsotion
         // Hermite Integral, DKD, KDK
         // Read the output of acceleration deposition and see if there should be any change.
@@ -175,19 +180,28 @@ int main(void){
 	if(mode_h == 4) hermiteMPI( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G );
 	//MPI DKD HI
         if(mode_h == 5) herMPIDKD( N, M, x, y, z, vx, vy, vz, ax, ay, az, jx, jy, jz, ts, G );
+        for(int n;n<N;n++){
+            printf("a[%2d] = %5.5f %5.5f %5.5f\n", n, ax[n], ay[n], az[n]);
+        }
         // end HI, DKD, KDK
         // Dump data
+        /*
         FILE *file = fopen("Particle_position.txt","a");
         fprintf(file," t = %5.5f \n", t);
         for(int n = 0; n < N; n++)
         {
             fprintf(file, "%5.5f \t %5.5f \t %5.5f \n", x[n], y[n], z[n]);
         }
-        fclose(file);
+        fclose(flie);
+*/
         // end dump data
-        c += 1;
+        for(int n = 0; n<N; n++){
+        printf("%5.5f \t %5.5f \t %5.5f \n", x[n], y[n], z[n]); 
+       }
         t += ts;
     }
+    MPI_Finalize();
+
     return 0;
 }
 
@@ -215,7 +229,7 @@ float ***buildGrid(const int numRows, const int numCols, const int numLevels)
     return levels;
 }
 
-void mass_deposition(int N, int Nthread,double *M, double *x, double *y, double *z, double gs, int GN, int mode, float ****M_grid)
+void mass_deposition(int N, double *M, double *x, double *y, double *z, double gs, int GN, int mode, float ****M_grid)
 {
 /*
  mode 1: NGP
@@ -232,11 +246,7 @@ void mass_deposition(int N, int Nthread,double *M, double *x, double *y, double 
     double wx, wy, wz; //weighted function
     
     *M_grid = buildGrid(GN,GN,GN);
-    
     // initialize M_grid
-    # pragma omp parallel num_threads( Nthread )
-    {
-        # pragma omp parallel for collapse( 3 )
     for(int i = 0; i<GN; i++){
         for(int j = 0; j<GN; j++){
             for(int k = 0; k<GN; k++){
@@ -274,6 +284,7 @@ void mass_deposition(int N, int Nthread,double *M, double *x, double *y, double 
                         else wz = 0.0;
                         
                         m[n][i][j][k] = wx*wy*wz*M[n];
+                        (*M_grid)[i][j][k] += (float)m[n][i][j][k];
                         
                     }
                 }
@@ -309,6 +320,7 @@ void mass_deposition(int N, int Nthread,double *M, double *x, double *y, double 
                         else wz = 0.0;
                         
                         m[n][i][j][k] = wx*wy*wz*M[n];
+                        (*M_grid)[i][j][k] += (float)m[n][i][j][k];
                         
                     }
                 }
@@ -363,25 +375,15 @@ void mass_deposition(int N, int Nthread,double *M, double *x, double *y, double 
                         
                         m[n][i][j][k] = wx*wy*wz*M[n];
 
+                        (*M_grid)[i][j][k] += (float)m[n][i][j][k];
                     }
                 }
             }
         }
     }
-        # pragma omp parallel for collapse( 4 )
-        for(int n = 0; n<N; n++){
-             for(int i = 0; i<GN; i++){
-                 for(int j = 0; j<GN; j++){
-                     for(int k = 0; k<GN; k++){
-                         (*M_grid)[i][j][k] += (float)m[n][i][j][k];
-                     }
-                 }
-            }
-        }
-    }
 }
 
-void acceleration_deposition( int N, int Nthread,float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode, double *a)
+void acceleration_deposition( int N, float ***a_grid, float ***M_grid, double *M, double *x, double *y, double *z, double gs, int GN, int mode, double *a)
 {
 /*
  mode 1: NGP
@@ -408,6 +410,10 @@ void acceleration_deposition( int N, int Nthread,float ***a_grid, float ***M_gri
             }
         }
     }
+<<<<<<< HEAD
+=======
+    
+>>>>>>> 154d31ba19ef034b06b7b05a208c5d4ef49cf5c3
     if(mode == 1)
         {
             for(int n = 0; n<N; n++)
@@ -1292,6 +1298,12 @@ double sp = 0.1;
 
 void hermiteMPI( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G )
 {
+   int NRank, MyRank;
+
+   MPI_Comm_rank( MPI_COMM_WORLD, &MyRank );
+
+   MPI_Comm_size( MPI_COMM_WORLD, &NRank );
+
 //parameters needed
 float dt[N];  //timestep based on all particles' properties respectively.
 double rx;
@@ -1323,7 +1335,7 @@ const int Tag = 123;
 const int Count = 1;
 double SendBuf;
 double RecvBuf;
-double sp = 0.1;
+double sp = 0.5;
 
 //parameter initialization
    for (int i=0; i<N; i++){ //initialize value to zero
@@ -1505,6 +1517,12 @@ double sp = 0.1;
 
 void herMPIDKD( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G )
 {
+   int NRank, MyRank;
+
+   MPI_Comm_rank( MPI_COMM_WORLD, &MyRank );
+
+   MPI_Comm_size( MPI_COMM_WORLD, &NRank );
+
 //parameters needed
 float dt[N];         //timestep based on all particles' properties respectively.
 double rx;
@@ -1513,11 +1531,19 @@ double rz;
 double rvx;
 double rvy;
 double rvz;
+double SendBuf;
+double RecvBuf;
 const int Tag = 123;
 double sp = 0.1;
+double ahx[N];
+double ahy[N];
+double ahz[N];
 double afx[N];//f stand for final, the predicted acceleration at time t+ts
 double afy[N];
 double afz[N];
+double jhx[N];
+double jhy[N];
+double jhz[N];
 double jfx[N];//j stand for jerk
 double jfy[N];
 double jfz[N];
@@ -1534,7 +1560,7 @@ double aaf[N];   //first a of all below stands for absolute value
 double aaf2[N];
 double ajf[N];
 double aa3[N];
-
+double hts = 0.5*ts;
 //parameter initialization
    for (int i=0; i<N; i++){ //initialize value to zero
       aaf[i] = 0;
@@ -1544,6 +1570,12 @@ double aa3[N];
       afx[i] = 0;
       afy[i] = 0;
       afz[i] = 0;
+      ahx[i] = 0;
+      ahy[i] = 0;
+      ahz[i] = 0;
+      jhx[i] = 0;
+      jhy[i] = 0;
+      jhz[i] = 0;
       jfx[i] = 0;
       jfy[i] = 0;
       jfz[i] = 0;
