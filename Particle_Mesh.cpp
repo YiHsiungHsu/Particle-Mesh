@@ -169,19 +169,16 @@ int main(void){
         }
         // end HI, DKD, KDK
         // Dump data
-        /*
+        
         FILE *file = fopen("Particle_position.txt","a");
-        fprintf(file," t = %5.5f \n", t);
+        //fprintf(file," t = %5.5f \n", t);
         for(int n = 0; n < N; n++)
         {
             fprintf(file, "%5.5f \t %5.5f \t %5.5f \n", x[n], y[n], z[n]);
         }
         fclose(flie);
-*/
+
         // end dump data
-        for(int n = 0; n<N; n++){
-        printf("%5.5f \t %5.5f \t %5.5f \n", x[n], y[n], z[n]); 
-       }
         t += ts;
     }
     return 0;
