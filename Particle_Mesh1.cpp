@@ -229,9 +229,12 @@ start = MPI_Wtime();
         t += ts;
     }
     end = MPI_Wtime();
-    printf( "Elapsed time is %lf\n", end - start ); 
+    if (MyRank == 0){
+    file = fopen("elapse_time","ab");
+    fprintf(file, "%lf\n" , end -start );
+    fclose(file);
+    }
     MPI_Finalize();
-
     return 0;
 }
 
