@@ -230,7 +230,7 @@ start = MPI_Wtime();
     }
     end = MPI_Wtime();
     if (MyRank == 0){
-    file = fopen("elapse_time","ab");
+    file = fopen("elapse_time.txt","ab");
     fprintf(file, "%lf\n" , end -start );
     fclose(file);
     }
