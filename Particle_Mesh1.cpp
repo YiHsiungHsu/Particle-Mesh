@@ -615,18 +615,13 @@ void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
     fftw_plan fft;
     fft = fftw_plan_dft_r2c_3d( GN, GN, GN, rho, rhok, FFTW_ESTIMATE);
     fftw_execute(fft);
-    for(int i = 0; i < GN; i++){
-    for(int j = 0; j < GN; j++){
-    for(int k = 0; k < (GN/2+1); k++){
-   // printf("mkr[%2d][%2d][%2d] = %5.5f\n",i,j,k, rhok[k+(GN)*(j+GN*i)][0]);
-   // printf("mki = %5.5f\n", rhok[k+(GN)*(j+GN*i)][1]);
-    }}}
     //calculat potential phi =-4*M_PI*G/(kx**2+ky**2+kz**2)
     //need normailze with 1/N*N*N
     double _n;
     _n = 1 / (GN*gs*GN*gs*GN*gs);                                //normalize factor
     fftw_complex *phik;
     phik = (fftw_complex*) fftw_malloc( GN*GN*(GN/2+1) * sizeof(fftw_complex) );
+#   pargma omp for collapse(3) num_threads(Nthread)
     for(int i = 0; i < GN; i++){
     for(int j = 0; j < GN; j++){
     for(int k = 0; k < (GN/2+1); k++)
@@ -665,6 +660,7 @@ void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
     fftw_plan ifft;
     ifft = fftw_plan_dft_c2r_3d( GN, GN, GN, phik, phi, FFTW_ESTIMATE);  
     fftw_execute(ifft);
+#   pargma omp for collapse(3) num_threads(Nthread)
     for(int i = 0; i < GN; i++){
     for(int j = 0; j < GN; j++){
     for(int k = 0; k < (GN/2+1); k++)
@@ -672,6 +668,7 @@ void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
       //printf("r =%5.5f\n", phik[k+(GN/2+1)*(j+GN*i)][0]);
       //printf("i =%5.5f\n", phik[k+(GN/2+1)*(j+GN*i)][1]);
     }}}
+#   pargma omp for collapse(3) num_threads(Nthread)
     for(int i = 0; i < GN; i++){
     for(int j = 0; j < GN; j++){
     for(int k = 0; k < GN; k++)
@@ -688,12 +685,14 @@ void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
      //zero padding M
      double *zM;         //zero padding M     
      zM = (double*) fftw_malloc( (2*GN)*(2*GN)*(2*GN) * sizeof(double) );
+#   pargma omp for collapse(3) num_threads(Nthread)
      for (int i = 0; i < 2*GN; i++)
      for (int j = 0; j < 2*GN; j++)
      for (int k = 0; k < 2*GN; k++)
      {
          zM[k+(2*GN)*(j+2*GN*i)] = 0.0;
      }
+#   pargma omp for collapse(3) num_threads(Nthread)
      for (int i = 0; i < GN; i++)
      for (int j = 0; j < GN; j++)
      for (int k = 0; k < GN; k++)
@@ -702,6 +701,7 @@ void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
      }
      double *dgf;        //discrete Green's function
      dgf = (double*) fftw_malloc( (2*GN)*(2*GN)*(2*GN) * sizeof(double) );   // dgf = -1*/R
+#   pargma omp for collapse(3) num_threads(Nthread)
      for (int i = 0; i < 2*GN; i++)
      for (int j = 0; j < 2*GN; j++)
      for (int k = 0; k < 2*GN; k++)
@@ -756,6 +756,7 @@ void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
       fftw_complex *conk,*phik;
       conk = (fftw_complex*) fftw_malloc( (2*GN)*(2*GN)*(GN+1) * sizeof(fftw_complex) );
       phik = (fftw_complex*) fftw_malloc( (2*GN)*(2*GN)*(GN+1) * sizeof(fftw_complex) );
+#   pargma omp for collapse(3) num_threads(Nthread)
       for (int i = 0; i < 2*GN; i++)
       for (int j = 0; j < 2*GN; j++)
       for (int k = 0; k < GN+1; k++)
@@ -765,6 +766,7 @@ void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
       }
       double _n;
       _n = 1/(2*GN*2*GN*2*GN );      //normailize factor
+#   pargma omp for collapse(3) num_threads(Nthread)
       for (int i = 0; i < 2*GN; i++)
       for (int j = 0; j < 2*GN; j++)
       for (int k = 0; k < GN+1; k++)
@@ -777,6 +779,7 @@ void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
       fftw_plan ifft;
       ifft = fftw_plan_dft_c2r_3d( 2*GN, 2*GN, 2*GN, phik, _phi, FFTW_ESTIMATE );
       fftw_execute(ifft);
+#   pargma omp for collapse(3) num_threads(Nthread)
       for (int i = 0; i < GN; i++)
       for (int j = 0; j < GN; j++)
       for (int k = 0; k < GN; k++)
