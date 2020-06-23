@@ -209,6 +209,7 @@ start = MPI_Wtime();
         
         // Dump data
         
+	if (MyRank == 0){
         file = fopen("Particle_position.txt","ab");
         for(int n = 0; n < N; n++)
         {
@@ -219,7 +220,7 @@ start = MPI_Wtime();
         file = fopen("Momentum.txt","ab");
         fprintf(file, "%5.5f \t %5.5f \t %5.5f \n", Mx, My, Mz);
         fclose(file);
-
+			 }
             Mx = 0;
             My = 0;
             Mz = 0;
