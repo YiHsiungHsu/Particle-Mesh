@@ -14,7 +14,7 @@ void acceleration_deposition( int N, int Nthread, float ***a_grid, float ***M_gr
 void hermite( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
 void hermiteDKD( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
 void hermiteKDK( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
-void Potential( double *rho, double *phi, double G, int BC, int GN, double gs  );
+void Potential( double *rho, double *phi, double G, int BC, int GN, double gs , int Nthread );
 void hermiteMPI( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
 void herMPIDKD( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
 void herMPIKDK( const int N, double *M, double *x, double *y, double *z, double *vx, double *vy, double *vz, double *ax, double *ay, double *az, double *jx, double *jy, double *jz, double ts, double G );
@@ -37,8 +37,8 @@ start = MPI_Wtime();
     // add any necessary const. here
     int Nthread = 8;
     const double gs = 1.0; // grid size (distance between every grid point)
-    const int GN = 128; //box size. I set equilateral box, tell me if you need to change it.
-    const int N = 10; // number of particles
+    const int GN = 32; //box size. I set equilateral box, tell me if you need to change it.
+    const int N = 3; // number of particles
     double M[N], x[N], y[N], z[N];
     const int mode_d = 1; // choose the mode for deposition
     const int mode_h = 4; // choose the mode for hermite
@@ -112,7 +112,7 @@ start = MPI_Wtime();
                 }
             }
         }
-        Potential(  rho,  phi , G, BC, GN, gs);
+        Potential(  rho,  phi , G, BC, GN, gs,Nthread);
         // I need the row-major rho matrix and a row-major phi matrix with all 0
         // it will get the row-major phi matrix return
         for(int i = 1; i<GN+1; i++){
@@ -209,7 +209,6 @@ start = MPI_Wtime();
         
         // Dump data
         
-	if (MyRank == 0){
         file = fopen("Particle_position.txt","ab");
         for(int n = 0; n < N; n++)
         {
@@ -220,7 +219,7 @@ start = MPI_Wtime();
         file = fopen("Momentum.txt","ab");
         fprintf(file, "%5.5f \t %5.5f \t %5.5f \n", Mx, My, Mz);
         fclose(file);
-			 }
+
             Mx = 0;
             My = 0;
             Mz = 0;
@@ -606,8 +605,9 @@ void acceleration_deposition( int N, int Nthread, float ***a_grid, float ***M_gr
 ////
 ////Return      : phi
 ////--------------------------------------------------------------------------------------------
-void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
+void Potential( double *rho, double *phi, double G, int BC, int GN, double gs, int Nthread )
 {
+# pragma omp parallel num_threads( Nthread )
   if(BC == 0)                                       //period BC
   {
     //fft rho to rhok
@@ -622,7 +622,7 @@ void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
     _n = 1 / (GN*gs*GN*gs*GN*gs);                                //normalize factor
     fftw_complex *phik;
     phik = (fftw_complex*) fftw_malloc( GN*GN*(GN/2+1) * sizeof(fftw_complex) );
-#   pargma omp for collapse(3) num_threads(Nthread)
+# pragma omp parallel for collapse( 3 )
     for(int i = 0; i < GN; i++){
     for(int j = 0; j < GN; j++){
     for(int k = 0; k < (GN/2+1); k++)
@@ -661,7 +661,7 @@ void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
     fftw_plan ifft;
     ifft = fftw_plan_dft_c2r_3d( GN, GN, GN, phik, phi, FFTW_ESTIMATE);  
     fftw_execute(ifft);
-#   pargma omp for collapse(3) num_threads(Nthread)
+# pragma omp parallel for collapse( 3 )
     for(int i = 0; i < GN; i++){
     for(int j = 0; j < GN; j++){
     for(int k = 0; k < (GN/2+1); k++)
@@ -669,7 +669,7 @@ void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
       //printf("r =%5.5f\n", phik[k+(GN/2+1)*(j+GN*i)][0]);
       //printf("i =%5.5f\n", phik[k+(GN/2+1)*(j+GN*i)][1]);
     }}}
-#   pargma omp for collapse(3) num_threads(Nthread)
+# pragma omp parallel for collapse(3) 
     for(int i = 0; i < GN; i++){
     for(int j = 0; j < GN; j++){
     for(int k = 0; k < GN; k++)
@@ -686,14 +686,14 @@ void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
      //zero padding M
      double *zM;         //zero padding M     
      zM = (double*) fftw_malloc( (2*GN)*(2*GN)*(2*GN) * sizeof(double) );
-#   pargma omp for collapse(3) num_threads(Nthread)
+#   pragma omp for collapse(3) 
      for (int i = 0; i < 2*GN; i++)
      for (int j = 0; j < 2*GN; j++)
      for (int k = 0; k < 2*GN; k++)
      {
          zM[k+(2*GN)*(j+2*GN*i)] = 0.0;
      }
-#   pargma omp for collapse(3) num_threads(Nthread)
+#   pragma omp for collapse(3) 
      for (int i = 0; i < GN; i++)
      for (int j = 0; j < GN; j++)
      for (int k = 0; k < GN; k++)
@@ -702,7 +702,7 @@ void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
      }
      double *dgf;        //discrete Green's function
      dgf = (double*) fftw_malloc( (2*GN)*(2*GN)*(2*GN) * sizeof(double) );   // dgf = -1*/R
-#   pargma omp for collapse(3) num_threads(Nthread)
+#   pragma omp for collapse(3)
      for (int i = 0; i < 2*GN; i++)
      for (int j = 0; j < 2*GN; j++)
      for (int k = 0; k < 2*GN; k++)
@@ -757,7 +757,7 @@ void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
       fftw_complex *conk,*phik;
       conk = (fftw_complex*) fftw_malloc( (2*GN)*(2*GN)*(GN+1) * sizeof(fftw_complex) );
       phik = (fftw_complex*) fftw_malloc( (2*GN)*(2*GN)*(GN+1) * sizeof(fftw_complex) );
-#   pargma omp for collapse(3) num_threads(Nthread)
+#   pragma omp for collapse(3) 
       for (int i = 0; i < 2*GN; i++)
       for (int j = 0; j < 2*GN; j++)
       for (int k = 0; k < GN+1; k++)
@@ -767,7 +767,7 @@ void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
       }
       double _n;
       _n = 1/(2*GN*2*GN*2*GN );      //normailize factor
-#   pargma omp for collapse(3) num_threads(Nthread)
+#   pragma omp for collapse(3) 
       for (int i = 0; i < 2*GN; i++)
       for (int j = 0; j < 2*GN; j++)
       for (int k = 0; k < GN+1; k++)
@@ -780,7 +780,7 @@ void Potential( double *rho, double *phi, double G, int BC, int GN, double gs )
       fftw_plan ifft;
       ifft = fftw_plan_dft_c2r_3d( 2*GN, 2*GN, 2*GN, phik, _phi, FFTW_ESTIMATE );
       fftw_execute(ifft);
-#   pargma omp for collapse(3) num_threads(Nthread)
+#   pragma omp for collapse(3) 
       for (int i = 0; i < GN; i++)
       for (int j = 0; j < GN; j++)
       for (int k = 0; k < GN; k++)
