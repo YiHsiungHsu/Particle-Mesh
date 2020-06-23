@@ -38,7 +38,7 @@ start = MPI_Wtime();
     int Nthread = 8;
     const double gs = 1.0; // grid size (distance between every grid point)
     const int GN = 32; //box size. I set equilateral box, tell me if you need to change it.
-    const int N = 3; // number of particles
+    const int N = 2; // number of particles
     double M[N], x[N], y[N], z[N];
     const int mode_d = 1; // choose the mode for deposition
     const int mode_h = 4; // choose the mode for hermite
@@ -208,7 +208,7 @@ start = MPI_Wtime();
         //end Momentum
         
         // Dump data
-        
+        if (MyRank == 0){
         file = fopen("Particle_position.txt","ab");
         for(int n = 0; n < N; n++)
         {
@@ -219,7 +219,7 @@ start = MPI_Wtime();
         file = fopen("Momentum.txt","ab");
         fprintf(file, "%5.5f \t %5.5f \t %5.5f \n", Mx, My, Mz);
         fclose(file);
-
+			 }
             Mx = 0;
             My = 0;
             Mz = 0;
